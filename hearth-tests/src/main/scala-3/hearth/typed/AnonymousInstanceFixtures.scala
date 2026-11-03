@@ -134,4 +134,26 @@ object AnonymousInstanceFixtures {
   inline def testAnonymousInstanceConstructThisType: String = ${ testAnonymousInstanceConstructThisTypeImpl }
   private def testAnonymousInstanceConstructThisTypeImpl(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructThisType
+
+  inline def testAnonymousInstanceClassifiedMethodsWithMixins[A, M1]: Data = ${
+    testAnonymousInstanceClassifiedMethodsWithMixinsImpl[A, M1]
+  }
+  private def testAnonymousInstanceClassifiedMethodsWithMixinsImpl[A: Type, M1: Type](using q: Quotes): Expr[Data] = {
+    val mc = new AnonymousInstanceFixtures(q)
+    mc.testAnonymousInstanceClassifiedMethodsWithMixins[A](mc.UntypedType.fromTyped[M1].as_??)
+  }
+
+  inline def testAnonymousInstanceConstructWithoutConstructor[A]: String = ${
+    testAnonymousInstanceConstructWithoutConstructorImpl[A]
+  }
+  private def testAnonymousInstanceConstructWithoutConstructorImpl[A: Type](using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructWithoutConstructor[A]
+
+  inline def testAnonymousInstanceConstructByName: String = ${ testAnonymousInstanceConstructByNameImpl }
+  private def testAnonymousInstanceConstructByNameImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructByName
+
+  inline def testAnonymousInstanceConstructVar: String = ${ testAnonymousInstanceConstructVarImpl }
+  private def testAnonymousInstanceConstructVarImpl(using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructVar
 }

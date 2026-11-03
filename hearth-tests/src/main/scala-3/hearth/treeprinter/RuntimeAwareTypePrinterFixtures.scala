@@ -9,6 +9,10 @@ final private class RuntimeAwareTypePrinterFixtures(q: Quotes)
 
 object RuntimeAwareTypePrinterFixtures {
 
+  inline def testPlainPrint[A]: String = ${ testPlainPrintImpl[A] }
+  private def testPlainPrintImpl[A: Type](using q: Quotes): Expr[String] =
+    new RuntimeAwareTypePrinterFixtures(q).testPlainPrint[A]
+
   inline def testNoOverride[A]: String = ${ testNoOverrideImpl[A] }
   private def testNoOverrideImpl[A: Type](using q: Quotes): Expr[String] =
     new RuntimeAwareTypePrinterFixtures(q).testNoOverride[A]

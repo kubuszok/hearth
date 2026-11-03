@@ -4400,6 +4400,10 @@ Pass settings to macros via `-Xmacro-settings:key=value`:
     Environment.typedSettings.toOption.flatMap(_.get("myMacro")).flatMap(_.get("debug"))
     ```
 
+Values are parsed like Scala literals: `42` is an `Int` (one too large for `Int` is an error), `42L` a `Long`, `1.5` and
+`1.5d` a `Double`, `1.5f` a `Float`, `true`/`false` a `Boolean` and `"text"` a `String` - anything else is kept as a
+`String`.
+
 ### Reporting
 
 Report messages to the user during compilation:

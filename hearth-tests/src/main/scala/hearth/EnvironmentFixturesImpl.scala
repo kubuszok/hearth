@@ -131,6 +131,123 @@ trait EnvironmentFixturesImpl { this: MacroCommons =>
     Expr(result)
   }
 
+  def testPositionPrettyPrintLong: Expr[Data] = {
+    val position = Environment.currentPosition
+    val long = position.prettyPrintLong
+    val lineAndColumn = s":${position.line}:${position.column}"
+    val path = long.stripSuffix(lineAndColumn)
+    Expr(
+      Data.map(
+        "path" -> Data(path.drop(path.indexOf("hearth-tests"))),
+        "endsWithLineAndColumn" -> Data(long.endsWith(lineAndColumn)),
+        "endsWithPrettyPrint" -> Data(long.endsWith(position.prettyPrint))
+      )
+    )
+  }
+
+  def testCompileTimeVersions: Expr[Data] = {
+    val scalaVersion = Environment.currentScalaVersion
+    val jdkVersion = Environment.currentJDKVersion
+    Expr(
+      Data.map(
+        "scalaLanguageVersion" -> Data(scalaVersion.toLanguageVersion.toString),
+        "scalaMajor" -> Data(scalaVersion.major),
+        "scalaMinorIs13WhenScala2" -> Data(!scalaVersion.isScala2_13 || scalaVersion.minor == 13),
+        "jdkMajor" -> Data(jdkVersion.major),
+        "jdkMinorAtLeast8" -> Data(jdkVersion.minor >= 8),
+        "jdkSameAsRuntimeJDKVersion" -> Data(jdkVersion == JDKVersion.runtimeJDKVersion)
+      )
+    )
+  }
+
+  def testTypedSettingsAccessors: Expr[Data] = {
+    val primitives = Environment.typedSettings.toOption
+      .flatMap(_.get("hearth-tests"))
+      .flatMap(_.get("primitives"))
+      .getOrElse(Data())
+    Expr(
+      Data.map(
+        "intAsInt" -> Data(primitives.get("int").flatMap(_.asInt).isDefined),
+        "longAsLong" -> Data(primitives.get("long").flatMap(_.asLong).isDefined),
+        "floatAsFloat" -> Data(primitives.get("float").flatMap(_.asFloat).isDefined),
+        "doubleAsDouble" -> Data(primitives.get("double").flatMap(_.asDouble).isDefined),
+        "booleanAsBoolean" -> Data(primitives.get("boolean").flatMap(_.asBoolean).isDefined),
+        "explicitStringAsString" -> Data(primitives.get("explicit-string").flatMap(_.asString).isDefined),
+        "implicitStringAsString" -> Data(primitives.get("implicit-string").flatMap(_.asString).isDefined),
+        "intRendered" -> Data(primitives.get("int").map(_.render).getOrElse("<missing>"))
+      )
+    )
+  }
+
+  def testMioBenchmarkFlameGraphDir: Expr[Data] =
+    Expr(Data(Environment.mioBenchmarkFlameGraphDir.exists(_.endsWith("flame-graphs"))))
+
+  def testReportErrorTwice: Expr[Data] = {
+    Environment.reportError("First error message")
+    Environment.reportError("Second error message")
+    Expr(Data(true))
+  }
+
+  def testReportErrorThenAbort: Expr[Any] = {
+    Environment.reportError("Error reported before abort")
+    Environment.reportErrorAndAbort("Abort reported after error")
+  }
+
+  def testHandleMioTerminationReportsError: Expr[Any] = {
+    def terminated(): Expr[Any] = throw new fp.effect.MIO.MioTerminationException("Simulated MIO termination")
+    Environment.handleMioTerminationException(terminated())
+  }
+
+  def testHandleMioTerminationPassesValue: Expr[Int] =
+    Environment.handleMioTerminationException(Expr(42))
+
+  def testWithMioTimeout: Expr[Data] = {
+    import scala.concurrent.duration.*
+    def loopForever: fp.effect.MIO[Int] = fp.effect.MIO.defer(loopForever)
+    val success = Environment.withMioTimeout(5.seconds)(fp.effect.MIO.pure(42).unsafe.runSync._2)
+    val timedOut = Environment.withMioTimeout(50.millis)(loopForever.unsafe.runSync._2)
+    val deadlineResetAfterTimeout = fp.effect.MIO.timeoutDeadlineNanos == Long.MaxValue
+    val reentry = Environment.withMioTimeout(5.seconds) {
+      try {
+        val _ = Environment.withMioTimeout(5.seconds)(())
+        "nested call accepted"
+      } catch {
+        case _: HearthAssertionError => "nested call rejected"
+      }
+    }
+    Expr(
+      Data.map(
+        "success" -> Data(success.toOption.flatMap(_.toOption).getOrElse(-1)),
+        "timedOut" -> Data(timedOut.isLeft),
+        "deadlineResetAfterTimeout" -> Data(deadlineResetAfterTimeout),
+        "reentry" -> Data(reentry.toOption.getOrElse("timed out")),
+        "deadlineResetAfterReentry" -> Data(fp.effect.MIO.timeoutDeadlineNanos == Long.MaxValue)
+      )
+    )
+  }
+
+  /** Logging is switched off when the `MIO` is built, so the program is built inside the block. */
+  def testWithMioLoggingDisabled: Expr[Data] = {
+    def logOnce = fp.effect.Log.info("logged") >> fp.effect.MIO.pure(1)
+    def entries(state: fp.effect.MState): Int = state.logs.count {
+      case _: fp.effect.Log.Entry => true
+      case _                      => false
+    }
+    val disabled = Environment.withMioLoggingDisabled {
+      val nested = Environment.withMioLoggingDisabled(logOnce.unsafe.runSync._1)
+      val afterNested = logOnce.unsafe.runSync._1
+      (entries(nested), entries(afterNested))
+    }
+    val enabled = logOnce.unsafe.runSync._1
+    Expr(
+      Data.map(
+        "entriesInNestedDisabledBlock" -> Data(disabled._1),
+        "entriesAfterNestedBlockEnded" -> Data(disabled._2),
+        "entriesAfterDisabledBlockEnded" -> Data(entries(enabled))
+      )
+    )
+  }
+
   private def processResult[A](result: ExtensionLoadingResult[A]): Data = {
     def loadedData(extensions: Seq[A]): Data = Data.list(extensions.map(e => Data(e.getClass.getName))*)
     def errorsData(errors: fp.data.NonEmptyMap[A, Throwable]): Data =

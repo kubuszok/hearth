@@ -407,10 +407,15 @@ trait Methods { this: MacroCommons =>
       lazy val getLike = name.startsWith("get") && name.length > 3 && name.charAt(3).isUpper
       lazy val isLike = name.startsWith("is") && name.length > 2 && name.charAt(2).isUpper
       asUntyped.invocation == Invocation.OnInstance && isNullary && (getLike || isLike) &&
-      knownReturning.exists { rt =>
-        import rt.Underlying as R
-        (getLike && !(R <:< Type.of[Unit])) || (isLike && (R <:< Type.of[Boolean]))
-      }
+      (knownReturning match {
+        case Some(rt) =>
+          import rt.Underlying as R
+          (getLike && !(R <:< Type.of[Unit])) || (isLike && (R <:< Type.of[Boolean]))
+        // A generic getter (e.g. `getClass[T >: this.type]()` on Scala 3) has no return type until its type arguments
+        // are applied, so only its signature can tell us what it returns. A generic `is` method is a type test
+        // (`isInstanceOf[T]`), not a boolean property.
+        case None => getLike && asUntyped.paramTypePrints(untypedInstanceType)._2 != "scala.Unit"
+      })
     }
     final lazy val isJavaSetter: Boolean =
       asUntyped.invocation == Invocation.OnInstance && isUnary && name.startsWith("set") && name.length > 3 &&
@@ -778,9 +783,13 @@ trait Methods { this: MacroCommons =>
           accTypeArgs: UntypedTypeArguments,
           accArgs: UntypedArguments,
           appliedState: AppliedState,
-          returnType: Option[() => ??]
+          returnType: Option[() => ??],
+          argumentErrors: Vector[String]
       ): Method =
         if (stepIndex >= expectations.length) {
+          def validateAndBuild(): Either[String, UntypedExpr] =
+            if (argumentErrors.nonEmpty) Left(argumentErrors.mkString("\n"))
+            else buildExpr(accInstance, accTypeArgs, accArgs)
           val effectiveReturnType = returnType.map(_.apply()).orElse {
             if (accTypeArgs.nonEmpty)
               buildExpr(accInstance, accTypeArgs, accArgs).toOption
@@ -795,7 +804,7 @@ trait Methods { this: MacroCommons =>
                 untypedInstanceType = untypedInstanceType,
                 expectations = expectations,
                 totalParameters = totalParameters,
-                validateAndBuild = () => buildExpr(accInstance, accTypeArgs, accArgs)
+                validateAndBuild = () => validateAndBuild()
               )(instanceEvidence, Type[Returned], appliedState)
             case None =>
               new Method.Result[Nothing](
@@ -803,7 +812,7 @@ trait Methods { this: MacroCommons =>
                 untypedInstanceType = untypedInstanceType,
                 expectations = expectations,
                 totalParameters = totalParameters,
-                validateAndBuild = () => buildExpr(accInstance, accTypeArgs, accArgs)
+                validateAndBuild = () => validateAndBuild()
               )(instanceEvidence, Type.of[Nothing].asInstanceOf[Type[Nothing]], appliedState)
           }
         } else
@@ -824,7 +833,8 @@ trait Methods { this: MacroCommons =>
                     accTypeArgs,
                     accArgs,
                     nextState,
-                    returnType
+                    returnType,
+                    argumentErrors
                   )
                 }
               )(instanceEvidence, appliedState)
@@ -849,7 +859,8 @@ trait Methods { this: MacroCommons =>
                     allTypeArgs,
                     accArgs,
                     nextState,
-                    resolvedReturnType
+                    resolvedReturnType,
+                    argumentErrors
                   )
                 }
               )(instanceEvidence, appliedState)
@@ -875,6 +886,15 @@ trait Methods { this: MacroCommons =>
                       )
                     case None => expectations
                   }
+                  // `unsafeApply` would splice an argument of the wrong type as is, so the expansion would fail with a
+                  // compiler error instead of `build()` returning a `Left`.
+                  val wrongTypes = params.flatten.flatMap { case (name, param) =>
+                    val expected = param.byNameUnderlying.getOrElse(param.tpe)
+                    newArgs.get(name).map(UntypedExpr.as_??(_).Underlying).collect {
+                      case actual if !(actual <:< expected.Underlying) =>
+                        s"Argument for parameter `$name` of ${asUntyped.name} has type ${actual.prettyPrint}, expected ${expected.Underlying.prettyPrint}"
+                    }
+                  }
                   buildFromStep(
                     nextExpectations,
                     stepIndex + 1,
@@ -882,13 +902,14 @@ trait Methods { this: MacroCommons =>
                     accTypeArgs,
                     nextAccArgs,
                     nextState,
-                    returnType
+                    returnType,
+                    argumentErrors ++ wrongTypes
                   )
                 }
               )(instanceEvidence, appliedState)
           }
 
-      buildFromStep(expectations, 0, None, Map.empty, Map.empty, initialState, returnType)
+      buildFromStep(expectations, 0, None, Map.empty, Map.empty, initialState, returnType, Vector.empty)
     }
 
     /** Needs an instance expression (the receiver of a non-static, non-constructor method).

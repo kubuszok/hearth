@@ -56,10 +56,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           c.internal.reificationSupport.freshTermName(prefix + "$macro$")
 
         def apply[A: Type](freshName: FreshName, expr: Expr[A]): TermName = freshName match {
-          case FreshName.FromPrefix(prefix)         => apply(prefix)
-          case FreshName.FromExpr if (expr != null) => apply(expr.tree.toString)
+          case FreshName.FromPrefix(prefix)                                          => apply(prefix)
+          case FreshName.FromExpr if (expr != null) && identifierFrom(expr).nonEmpty => apply(identifierFrom(expr))
           case _ => apply(UntypedType.fromTyped[A].typeSymbol.name.decodedName.toString.toLowerCase)
         }
+
+        // The printed expression is arbitrary code (`sth.toString()`), not something usable as a name.
+        private def identifierFrom[A](expr: Expr[A]): String =
+          expr.tree.toString.filter(_.isLetterOrDigit).dropWhile(_.isDigit).toLowerCase
       }
 
       object implicits {
@@ -181,13 +185,20 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         // For Java enum value types like ExampleJavaEnum(VALUE1) from directChildren
         else if (UntypedType.isJavaEnumValue(tpe)) {
           import Type.platformSpecific.javaEnumRegexpFormat
-          tpe.toString match {
-            case javaEnumRegexpFormat(_, valueName) =>
-              val enumClassType = sym.asType.toType
-              enumClassType.companion.decls
-                .find(s => s.isJavaEnum && s.name.toString == valueName)
-                .map(vs => c.Expr[A](c.universe.internal.gen.mkAttributedRef(vs.asTerm)))
-            case _ => None
+          tpe.dealias match {
+            // A Java enum value's type is a constant type holding the value's own symbol, and the compiler refers to
+            // the value with a literal of that constant (which, unlike a reference to the static field, `semiEval` reads).
+            case ConstantType(constant @ Constant(_: Symbol)) =>
+              Some(c.Expr[A](c.universe.internal.setType(Literal(constant), tpe)))
+            case _ =>
+              tpe.toString match {
+                case javaEnumRegexpFormat(_, valueName) =>
+                  val enumClassType = sym.asType.toType
+                  enumClassType.companion.decls
+                    .find(s => s.isJavaEnum && s.name.toString == valueName)
+                    .map(vs => c.Expr[A](c.universe.internal.gen.mkAttributedRef(vs.asTerm)))
+                case _ => None
+              }
           }
         } else None
       }
@@ -215,7 +226,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
 
-      def eval(tree: Tree, overrides: Overrides): Result = evalWithLocals(tree, Map.empty, overrides)
+      // A tree built with quasiquotes (e.g. by an `ExprCodec.toExpr`) is untyped, so it has no symbols to evaluate.
+      def eval(tree: Tree, overrides: Overrides): Result = {
+        val typedTree = if (tree.tpe != null) tree else scala.util.Try(c.typecheck(tree)).getOrElse(tree)
+        evalWithLocals(typedTree, Map.empty, overrides)
+      }
 
       private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         if (overrides != null) {
@@ -230,6 +245,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           }
         }
         tree match {
+          // A Java enum value is constant-folded into a literal whose value is the compiler's symbol of the enum value
+          // (only flagged `isJavaEnum` when the enum comes from a classfile, not from a Java source of the same module).
+          case Literal(Constant(enumValue: Symbol)) =>
+            UntypedType
+              .toClass(tree.tpe.widen)
+              .flatMap(enumClass =>
+                scala.util.Try(enumClass.getField(enumValue.name.decodedName.toString).get(null)).toOption
+              )
+              .toRight(NonEmptyVector.one(s"Cannot load the Java enum value ${enumValue.fullName}"))
+
           case Literal(Constant(value)) =>
             Right(value)
 
@@ -272,7 +297,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
           case Select(qualifier, name) if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isMethod =>
             evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
-              invokeMethod(receiver, name.decodedName.toString, Nil)
+              invokeMethod(receiver, tree.symbol, name.decodedName.toString, Nil)
             }
 
           case Select(qualifier, name) =>
@@ -347,16 +372,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         core match {
           case Select(New(tpt), termNames.CONSTRUCTOR) =>
             evalConstructor(tpt.tpe, allArgTrees, locals, overrides)
-          case Select(qualifier, name) =>
+          case select @ Select(qualifier, name) =>
             evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
               allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
-                invokeMethod(receiver, name.decodedName.toString, argValues)
+                invokeMethod(receiver, select.symbol, name.decodedName.toString, argValues)
               }
             }
-          case TypeApply(Select(qualifier, name), _) =>
+          case TypeApply(select @ Select(qualifier, name), _) =>
             evalWithLocals(qualifier, locals, overrides).flatMap { receiver =>
               allArgTrees.map(a => evalWithLocals(a, locals, overrides)).parSequence.flatMap { argValues =>
-                invokeMethod(receiver, name.decodedName.toString, argValues)
+                invokeMethod(receiver, select.symbol, name.decodedName.toString, argValues)
               }
             }
           case TypeApply(inner, _) =>
@@ -498,6 +523,29 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       private def invokeGetter(receiver: Any, name: String): Result =
         invokeMethod(receiver, name, Nil)
 
+      private def invokeMethod(receiver: Any, sym: Symbol, name: String, args: List[Any]): Result =
+        invokeMethod(receiver, name, args).left.flatMap { errors =>
+          invokeValueClassExtension(receiver, sym, name, args).toRight(errors)
+        }
+
+      // A value class (e.g. `StringOps` from `augmentString`, `RichInt` from `intWrapper`) is erased to its underlying
+      // value, so its methods are not on the receiver's class but are `name$extension(underlying, args...)` methods of
+      // its companion module.
+      private def invokeValueClassExtension(receiver: Any, sym: Symbol, name: String, args: List[Any]): Option[Any] = {
+        val owner = if (sym == null || sym == NoSymbol) NoSymbol else sym.owner
+        if (owner == NoSymbol || !owner.isClass || !(owner.asClass.toType <:< c.universe.definitions.AnyValTpe)) None
+        else
+          moduleCandidates(owner.fullName).iterator
+            .collectFirst { case ModuleSingleton(module) => module }
+            .flatMap { module =>
+              val extensionName = scala.reflect.NameTransformer.encode(name) + "$extension"
+              val candidates = module.getClass.getMethods.filter(_.getName == extensionName).toList
+              findMatchingMethod(candidates, receiver :: args).toOption.flatMap { case (method, preparedArgs) =>
+                scala.util.Try(method.invoke(module, preparedArgs.map(_.asInstanceOf[AnyRef])*)).toOption
+              }
+            }
+      }
+
       private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
         if (name == "asInstanceOf" && args.isEmpty) return Right(receiver)
         val clazz = receiver.getClass
@@ -525,7 +573,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
       private def evalPrimitiveOp(receiver: Any, name: String, args: List[Any]): Result = {
         val decodedName = scala.reflect.NameTransformer.decode(name)
-        (receiver, decodedName, args) match {
+        // In arithmetic a Char is its Int code (`'a' + 1 == 98`, `'a'.toInt == 97`), but Character is not a Number.
+        def charAsInt(value: Any): Any = value match {
+          case c: java.lang.Character => java.lang.Integer.valueOf(c.charValue.toInt)
+          case other                  => other
+        }
+        val isArithmetic = receiver.isInstanceOf[Number] || receiver.isInstanceOf[java.lang.Character]
+        val (operand, operands) = if (isArithmetic) (charAsInt(receiver), args.map(charAsInt)) else (receiver, args)
+        (operand, decodedName, operands) match {
           case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
           case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
           case (a: Number, "unary_-", Nil)                           => evalUnaryMinus(a)
@@ -535,8 +590,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           case (a: java.lang.Boolean, _, List(b: java.lang.Boolean)) =>
             evalBooleanOp(a, b, decodedName)
           case (a: java.lang.Boolean, "unary_!", Nil) => Right(!a)
-          case (a: Comparable[?], _, List(b))         => evalComparisonOp(a, b, decodedName)
           case (a: String, "+", List(b))              => Right(a + b)
+          case (a: Comparable[?], _, List(b))         => evalComparisonOp(a, b, decodedName)
           case _                                      =>
             Left(
               NonEmptyVector.one(
@@ -647,6 +702,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         case "toFloat"  => Right(a.floatValue: java.lang.Float)
         case "toShort"  => Right(a.shortValue: java.lang.Short)
         case "toByte"   => Right(a.byteValue: java.lang.Byte)
+        case "toChar"   => Right(a.intValue.toChar: java.lang.Character)
         case _          => Left(NonEmptyVector.one(s"Unsupported conversion: $name"))
       }
 
@@ -3847,7 +3903,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
   sealed private trait DstrCallStep
   final private case class DstrTypeStep(targs: List[Tree]) extends DstrCallStep
-  final private case class DstrValueStep(args: List[Tree]) extends DstrCallStep
+  // `funTpe` is the type of the applied function, whose parameter types are instantiated even for a generic method.
+  final private case class DstrValueStep(args: List[Tree], funTpe: c.Type) extends DstrCallStep
 
   private def dstrTpeOf(tree: Tree): ?? =
     if (tree.tpe != null && tree.tpe != NoType) UntypedType.as_??(tree.tpe.widen)
@@ -3885,11 +3942,37 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
             (tree.symbol.isModule || tree.symbol.isModuleClass) =>
         new DestructuredExpr.Singleton(dstrTpeOf(tree), name.decodedName.toString, () => tree)
 
+      case _ if dstrSingletonPath(tree).isDefined =>
+        new DestructuredExpr.Singleton(dstrTpeOf(tree), dstrSingletonPath(tree).get, () => tree)
+
       case _ =>
         dstrTryMethodCall(tree, lambdaParams).getOrElse {
           new DestructuredExpr.NonDestructurable(dstrTpeOf(tree), tree, showCode(tree))
         }
     }
+
+  // A qualified reference to an object (`Shape.Circle`, `scala.None`) is a `Select`, not an `Ident`, and `Nil` is a
+  // `val` of the `scala` package object whose type is an object. They are named by their path of enclosing objects,
+  // without the packages.
+  private def dstrSingletonPath(tree: Tree): Option[String] = {
+    def isPackageLike(sym: Symbol): Boolean =
+      sym.isPackage || sym.isPackageClass || sym.name.decodedName.toString == "package"
+    def isObject(sym: Symbol): Boolean = (sym.isModule || sym.isModuleClass) && !isPackageLike(sym)
+    def isStableValue(sym: Symbol): Boolean =
+      sym.isTerm && sym.asTerm.isStable && (!sym.isMethod || sym.asMethod.paramLists.isEmpty)
+    val sym = tree.symbol
+    val isSingleton = sym != null && sym != NoSymbol && !isPackageLike(sym) &&
+      (isObject(sym) || (isStableValue(sym) && tree.tpe != null && isObject(tree.tpe.widen.typeSymbol)))
+    def path(sym: Symbol): String = {
+      val owner = sym.owner
+      val name = sym.name.decodedName.toString
+      if (owner != NoSymbol && isObject(owner)) s"${path(owner)}.$name" else name
+    }
+    tree match {
+      case _: Select if isSingleton => Some(path(sym))
+      case _                        => None
+    }
+  }
 
   private def dstrTryConstructor(
       core: Tree,
@@ -3960,7 +4043,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
   private def dstrFlattenCall(tree: Tree): (Tree, List[DstrCallStep]) = tree match {
     case Apply(inner, args) =>
       val (core, steps) = dstrFlattenCall(inner)
-      (core, steps :+ DstrValueStep(args))
+      (core, steps :+ DstrValueStep(args, inner.tpe))
     case TypeApply(inner, targs) =>
       val (core, steps) = dstrFlattenCall(inner)
       (core, steps :+ DstrTypeStep(targs))
@@ -3980,10 +4063,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     steps.foreach {
       case DstrTypeStep(targs) =>
         applied += new DestructuredExpr.MethodCall.AppliedTypes(targs.map(dstrTpeOf))
-      case DstrValueStep(args) =>
+      case DstrValueStep(args, funTpe) =>
         val clause = parameterClauses.lift(valueClauseIdx)
         valueClauseIdx += 1
-        applied += new DestructuredExpr.MethodCall.AppliedValues(dstrValueArgs(args, clause, lambdaParams))
+        val values = clause match {
+          case Some(_) => dstrValueArgs(args, clause, lambdaParams)
+          // A generic method has no typed parameters until its type arguments are applied.
+          case None => dstrValueArgsByFunctionType(args, funTpe, lambdaParams)
+        }
+        applied += new DestructuredExpr.MethodCall.AppliedValues(values)
     }
   }
 
@@ -4010,6 +4098,25 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       )
     case _ =>
       args.map(dstrImpl(_, lambdaParams))
+  }
+
+  private def dstrValueArgsByFunctionType(
+      args: List[Tree],
+      funTpe: c.Type,
+      lambdaParams: Map[Symbol, DestructuredExpr.Binding]
+  ): List[DestructuredExpr] = {
+    val params = if (funTpe == null) Nil else funTpe.paramLists.headOption.getOrElse(Nil)
+    params.lastOption.map(_.typeSignature) match {
+      case Some(TypeRef(_, repeated, List(element)))
+          if repeated == definitions.RepeatedParamClass && !dstrIsSpreadCall(args, params.size) =>
+        val (regular, rest) = args.splitAt(params.size - 1)
+        regular.map(dstrImpl(_, lambdaParams)) :+ new DestructuredExpr.Varargs(
+          UntypedType.as_??(appliedType(typeOf[scala.collection.immutable.Seq[Any]].typeConstructor, element)),
+          rest.map(dstrImpl(_, lambdaParams)),
+          () => q"_root_.scala.collection.immutable.Seq(..$rest)"
+        )
+      case _ => args.map(dstrImpl(_, lambdaParams))
+    }
   }
 
   private def dstrIsSpreadCall(args: List[Tree], clauseSize: Int): Boolean =

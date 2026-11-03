@@ -149,6 +149,50 @@ final class ClassesJvmSpec extends MacroSuite {
         "sequential: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2, parallel: subtype name: hearth.examples.enums.ExampleJavaEnum.VALUE2.type, expr: VALUE2"
     }
 
+    group("Java edge cases of class views") {
+      import ClassesFixtures.{
+        testClassViewKind,
+        testJavaBeanConstructWithoutSettersRoundTrip,
+        testJavaBeanSummary,
+        testSingletonRoundTrip
+      }
+
+      // Scala 2 widens a Java enum value's singleton type written in the source (`ExampleJavaEnum.VALUE1.type`) to the
+      // enum before a macro sees it; only the values' types listed by `directChildren` keep the value.
+      test("Class.apply picks the most specific view for Java enums, their values and Java beans") {
+        testClassViewKind[examples.enums.ExampleJavaEnum] <==> "Enum"
+        testClassViewKind[examples.enums.ExampleJavaEnum.VALUE1.type] <==>
+          (if (LanguageVersion.byHearth.isScala2_13) "Enum" else "SingletonValue")
+        testClassViewKind[examples.classes.ExampleJavaClass] <==> "JavaBean"
+      }
+
+      test("SingletonValue for Java enum values") {
+        val noSingletonOnScala2 =
+          (value: String) => if (LanguageVersion.byHearth.isScala2_13) "<no singleton>" else value
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE1.type] <==> noSingletonOnScala2("VALUE1")
+        testSingletonRoundTrip[examples.enums.ExampleJavaEnum.VALUE2.type] <==> noSingletonOnScala2("VALUE2")
+      }
+
+      test("JavaBean getters and setters of a Java class") {
+        val setterParameter = if (LanguageVersion.byHearth.isScala2_13) "x$1" else "x$0"
+        testJavaBeanSummary[examples.classes.ExampleJavaClass] <==> Data.map(
+          "defaultConstructor" -> Data("()"),
+          "beanGetters" -> Data.list(Data("getBoolean"), Data("getClass"), Data("getInt"), Data("getString")),
+          "beanSetters" -> Data.list(
+            Data.map("name" -> Data("setBoolean"), "parameters" -> Data(s"($setterParameter: scala.Boolean)")),
+            Data.map("name" -> Data("setInt"), "parameters" -> Data(s"($setterParameter: scala.Int)")),
+            Data.map("name" -> Data("setString"), "parameters" -> Data(s"($setterParameter: java.lang.String)"))
+          )
+        )
+      }
+
+      test("JavaBean.constructWithoutSetters for a Java class") {
+        testJavaBeanConstructWithoutSettersRoundTrip[
+          examples.classes.ExampleJavaClass
+        ] <==> "ExampleJavaClass(, 0, false)"
+      }
+    }
+
     test("JavaBean round-trip: construct with setters and evaluate at runtime") {
       import ClassesFixtures.testJavaBeanConstructRoundTrip
 

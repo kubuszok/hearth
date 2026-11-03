@@ -87,7 +87,7 @@ final class MioIntegrationsSpec extends MacroSuite {
               )
             ),
             "runningFailedAllowFailures" -> Data.map(
-              "loaded" -> Data.list(Data())
+              "loaded" -> Data.list()
             ),
             // These should always fail because the extension is not available.
             "loadingFailedDontAllowFailures" -> Data.map(
@@ -134,6 +134,41 @@ final class MioIntegrationsSpec extends MacroSuite {
                    |└ [Error] hearth.TotallyFailedMacroExtension - Failed to load extensions:
                    |          hearth.TotallyFailedMacroExtension: Provider hearth.Example4MacroExtension could not be instantiated
                    |""".stripMargin)
+        )
+      }
+    }
+
+    group("MIO.runToExprOrFail, expected behavior") {
+
+      test("should fail the expansion with the message built by renderFailure from all errors and the logs") {
+        compileErrors("MioIntegrationsFixtures.testRunToExprOrFailRendersFailure").check(
+          "rendered errors: first derivation error, second derivation error",
+          "rendered logs:",
+          "FailingMacro",
+          "error log of the failed derivation"
+        )
+      }
+
+      test("should fail a successful expansion with error logs when failOnErrorLog = true") {
+        compileErrors("MioIntegrationsFixtures.testRunToExprOrFailFailsOnErrorLog").check(
+          "ErrorLogMacro",
+          "error log failing the expansion"
+        )
+      }
+
+      test("should not fail a successful expansion with error logs when failOnErrorLog is not set") {
+        MioIntegrationsFixtures.testRunToExprOrFailIgnoresErrorLogByDefault ==> 1
+      }
+
+      test("should fail the expansion when the MIO program runs longer than the timeout") {
+        compileErrors("MioIntegrationsFixtures.testRunToExprOrFailTimeout").check(
+          "Macro 'LoopingMacro' timed out after 100ms"
+        )
+      }
+
+      test("should fail when called again inside an already running MIO program") {
+        compileErrors("MioIntegrationsFixtures.testRunToExprOrFailNested").check(
+          "MIO timeout is already set"
         )
       }
     }

@@ -72,6 +72,33 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
 
   def testClassViewParseReasonsImpl[A: c.WeakTypeTag]: c.Expr[Data] =
     testClassViewParseReasons[A]
+
+  def testClassViewKindImpl[A: c.WeakTypeTag]: c.Expr[String] = testClassViewKind[A]
+
+  def testClassMethodOverloadsImpl[A: c.WeakTypeTag](name: c.Expr[String]): c.Expr[Data] =
+    testClassMethodOverloads[A](name)
+
+  def testCaseClassSummaryImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCaseClassSummary[A]
+
+  def testCaseClassRuntimeRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] = testCaseClassRuntimeRoundTrip[A]
+
+  def testCaseClassConstructVisibilityImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCaseClassConstructVisibility[A]
+
+  def testCaseClassConstructErrorAggregationImpl[A: c.WeakTypeTag]: c.Expr[Data] =
+    testCaseClassConstructErrorAggregation[A]
+
+  def testEnumChildrenImpl[A: c.WeakTypeTag]: c.Expr[Data] = testEnumChildren[A]
+
+  def testEnumMatchOnRuntimeImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = testEnumMatchOnRuntime[A](expr)
+
+  def testJavaBeanSummaryImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaBeanSummary[A]
+
+  def testJavaBeanConstructWithoutSettersRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testJavaBeanConstructWithoutSettersRoundTrip[A]
+
+  def testJavaBeanConstructVisibilityImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaBeanConstructVisibility[A]
+
+  def testJavaBeanSetterErrorAggregationImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaBeanSetterErrorAggregation[A]
 }
 
 object ClassesFixtures {
@@ -137,4 +164,30 @@ object ClassesFixtures {
 
   def testClassViewParseReasons[A]: Data =
     macro ClassesFixtures.testClassViewParseReasonsImpl[A]
+
+  def testClassViewKind[A]: String = macro ClassesFixtures.testClassViewKindImpl[A]
+
+  def testClassMethodOverloads[A](name: String): Data = macro ClassesFixtures.testClassMethodOverloadsImpl[A]
+
+  def testCaseClassSummary[A]: Data = macro ClassesFixtures.testCaseClassSummaryImpl[A]
+
+  def testCaseClassRuntimeRoundTrip[A]: String = macro ClassesFixtures.testCaseClassRuntimeRoundTripImpl[A]
+
+  def testCaseClassConstructVisibility[A]: Data = macro ClassesFixtures.testCaseClassConstructVisibilityImpl[A]
+
+  def testCaseClassConstructErrorAggregation[A]: Data =
+    macro ClassesFixtures.testCaseClassConstructErrorAggregationImpl[A]
+
+  def testEnumChildren[A]: Data = macro ClassesFixtures.testEnumChildrenImpl[A]
+
+  def testEnumMatchOnRuntime[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnRuntimeImpl[A]
+
+  def testJavaBeanSummary[A]: Data = macro ClassesFixtures.testJavaBeanSummaryImpl[A]
+
+  def testJavaBeanConstructWithoutSettersRoundTrip[A]: String =
+    macro ClassesFixtures.testJavaBeanConstructWithoutSettersRoundTripImpl[A]
+
+  def testJavaBeanConstructVisibility[A]: Data = macro ClassesFixtures.testJavaBeanConstructVisibilityImpl[A]
+
+  def testJavaBeanSetterErrorAggregation[A]: Data = macro ClassesFixtures.testJavaBeanSetterErrorAggregationImpl[A]
 }

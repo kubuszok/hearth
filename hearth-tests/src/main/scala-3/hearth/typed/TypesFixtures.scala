@@ -240,4 +240,40 @@ object TypesFixtures {
   inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
   private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =
     new TypesFixtures(q).testLazyTypeScopeSafety
+
+  inline def testBuiltInPredicates[A]: Data = ${ testBuiltInPredicatesImpl[A] }
+  private def testBuiltInPredicatesImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testBuiltInPredicates[A]
+
+  inline def testHierarchyLists[A]: Data = ${ testHierarchyListsImpl[A] }
+  private def testHierarchyListsImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testHierarchyLists[A]
+
+  inline def testChildrenList[A]: Data = ${ testChildrenListImpl[A] }
+  private def testChildrenListImpl[A: Type](using q: Quotes): Expr[Data] = new TypesFixtures(q).testChildrenList[A]
+
+  inline def testExhaustiveChildren[A]: Data = ${ testExhaustiveChildrenImpl[A] }
+  private def testExhaustiveChildrenImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testExhaustiveChildren[A]
+
+  inline def testCompanionObject[A]: Data = ${ testCompanionObjectImpl[A] }
+  private def testCompanionObjectImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testCompanionObject[A]
+
+  inline def testCompanionObjectValue[A]: Any = ${ testCompanionObjectValueImpl[A] }
+  private def testCompanionObjectValueImpl[A: Type](using q: Quotes): Expr[Any] =
+    new TypesFixtures(q).testCompanionObjectValue[A]
+
+  inline def testJavaBeanVisibility[A]: Data = ${ testJavaBeanVisibilityImpl[A] }
+  private def testJavaBeanVisibilityImpl[A: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testJavaBeanVisibility[A]
+
+  inline def testTypeCacheAndLazy: Data = ${ testTypeCacheAndLazyImpl }
+  private def testTypeCacheAndLazyImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTypeCacheAndLazy
+
+  inline def testTypeCodecDecoding: Data = ${ testTypeCodecDecodingImpl }
+  private def testTypeCodecDecodingImpl(using q: Quotes): Expr[Data] = new TypesFixtures(q).testTypeCodecDecoding
+
+  inline def testUnionTypeTests[A, Member]: Data = ${ testUnionTypeTestsImpl[A, Member] }
+  private def testUnionTypeTestsImpl[A: Type, Member: Type](using q: Quotes): Expr[Data] =
+    new TypesFixtures(q).testUnionTypeTests[A, Member]
 }

@@ -174,7 +174,7 @@ final class MethodsJvmSpec extends MacroSuite {
                 "invocation" -> Data("OnInstance"),
                 "hasTypeParameters" -> Data(
                   !LanguageVersion.byHearth.isScala2_13
-                ), // On Scala 3 it _has_ type parameter...
+                ), // On Scala 3 it _has_ type parameter
                 "position" -> Data("None"),
                 "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
                 "isConstructor" -> Data(false),
@@ -200,17 +200,13 @@ final class MethodsJvmSpec extends MacroSuite {
                 "isScalaGetter" -> Data(false),
                 "isScalaSetter" -> Data(false),
                 "isScalaAccessor" -> Data(false),
-                "isJavaGetter" -> Data(
-                  LanguageVersion.byHearth.isScala2_13
-                ), // ...which we don't support yet, so it's false...
+                "isJavaGetter" -> Data(true),
                 "isJavaSetter" -> Data(false),
-                "isJavaAccessor" -> Data(LanguageVersion.byHearth.isScala2_13), // ...and this is false...
-                "isAccessor" -> Data(LanguageVersion.byHearth.isScala2_13), // ...so this is false too.
+                "isJavaAccessor" -> Data(true),
+                "isAccessor" -> Data(true),
                 "scalaAccessorName" -> Data("<no scala accessor name>"),
-                "javaAccessorName" -> Data(
-                  if (LanguageVersion.byHearth.isScala2_13) "class" else "<no java accessor name>"
-                ),
-                "accessorName" -> Data(if (LanguageVersion.byHearth.isScala2_13) "class" else "<no accessor name>")
+                "javaAccessorName" -> Data("class"),
+                "accessorName" -> Data("class")
               ),
             "hashCode()" -> Data.map(
               "invocation" -> Data("OnInstance"),
@@ -797,6 +793,59 @@ final class MethodsJvmSpec extends MacroSuite {
           )("sum")() ==> 0
         }
       }
+    }
+  }
+
+  group("methods: Java class members") {
+    import examples.classes.ExampleJavaClass
+    val J = "hearth.examples.classes.ExampleJavaClass"
+
+    def accessors(arity: Int, overrides: (String, Data)*): Data = Data.map(
+      (List[(String, Data)](
+        "arity" -> Data(arity),
+        "isNullary" -> Data(arity == 0),
+        "isUnary" -> Data(arity == 1),
+        "isBinary" -> Data(arity == 2),
+        "isNAry(3)" -> Data(arity == 3),
+        "isScalaGetter" -> Data(false),
+        "isScalaSetter" -> Data(false),
+        "isScalaAccessor" -> Data(false),
+        "scalaAccessorName" -> Data("<none>"),
+        "isJavaGetter" -> Data(false),
+        "isJavaSetter" -> Data(false),
+        "isJavaAccessor" -> Data(false),
+        "javaAccessorName" -> Data("<none>"),
+        "isAccessor" -> Data(false),
+        "accessorName" -> Data("<none>")
+      ).toMap ++ overrides).toList*
+    )
+
+    test("JavaBean getters and setters of a Java class are recognized") {
+      import MethodsFixtures.testMethodAccessorsAndArity
+      def accessor(kind: String, name: String) = List(
+        kind -> Data(true),
+        "isJavaAccessor" -> Data(true),
+        "javaAccessorName" -> Data(name),
+        "isAccessor" -> Data(true),
+        "accessorName" -> Data(name)
+      )
+      testMethodAccessorsAndArity[ExampleJavaClass]("getString") <==>
+        Data.list(accessors(0, accessor("isJavaGetter", "string")*))
+      testMethodAccessorsAndArity[ExampleJavaClass]("getBoolean") <==>
+        Data.list(accessors(0, accessor("isJavaGetter", "boolean")*))
+      testMethodAccessorsAndArity[ExampleJavaClass]("setString") <==>
+        Data.list(accessors(1, accessor("isJavaSetter", "string")*))
+    }
+
+    test("Java class constructor and methods are rendered and callable") {
+      MethodsFixtures.testConstructorsExtraction[ExampleJavaClass] <==> Data.map(
+        "primaryConstructor" -> Data("()"),
+        "defaultConstructor" -> Data("()"),
+        "constructors" -> Data.list(Data("()"))
+      )
+      MethodsFixtures.testMethodSignatures[ExampleJavaClass]("getString") <==>
+        Data.list(Data(s"$J: def getString(): java.lang.String"))
+      MethodsFixtures.testChainWalk(new ExampleJavaClass)("getInt")().asMap.get("result") <==> Data("0")
     }
   }
 }

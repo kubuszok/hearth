@@ -12,6 +12,10 @@ final class AnonymousInstanceScala3Spec extends MacroSuite {
         // build(k): Int ?=> String — override returns `(i) ?=> k + i`, invoked as build("k")(using 7)
         AnonymousInstanceScala3Fixtures.testContextFunctionReturn <==> "k7"
       }
+
+      test("method with a trailing using parameter clause keeps the using modifier") {
+        AnonymousInstanceScala3Fixtures.testUsingParam <==> "go7"
+      }
     }
   }
 }

@@ -709,6 +709,34 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
     result.runToExprOrFail("testValDefBuilderBuildCachedWithMIO")((_, _) => "")
   }
 
+  private def renderErrors(logs: String, errors: fp.data.NonEmptyVector[Throwable]): String =
+    s"rendered errors: ${errors.toVector.map(_.getMessage).mkString(", ")}\nrendered logs: $logs"
+
+  def testRunToExprOrFailRendersFailure: Expr[Int] =
+    (Log.error("error log of the failed derivation") >> MIO.fail[Expr[Int]](
+      new RuntimeException("first derivation error"),
+      new RuntimeException("second derivation error")
+    )).runToExprOrFail("FailingMacro")(renderErrors)
+
+  def testRunToExprOrFailFailsOnErrorLog: Expr[Int] =
+    (Log.error("error log failing the expansion") >> MIO(Expr(1)))
+      .runToExprOrFail("ErrorLogMacro", warnRendering = DontRender, failOnErrorLog = true)(renderErrors)
+
+  def testRunToExprOrFailIgnoresErrorLogByDefault: Expr[Int] =
+    (Log.error("error log not failing the expansion") >> MIO(Expr(1)))
+      .runToExprOrFail("ErrorLogMacro", warnRendering = DontRender)(renderErrors)
+
+  def testRunToExprOrFailTimeout: Expr[Int] = {
+    def loopForever: MIO[Expr[Int]] = MIO.defer(loopForever)
+    loopForever.runToExprOrFail(
+      "LoopingMacro",
+      timeout = scala.concurrent.duration.FiniteDuration(100, java.util.concurrent.TimeUnit.MILLISECONDS)
+    )(renderErrors)
+  }
+
+  def testRunToExprOrFailNested: Expr[Int] =
+    MIO(MIO(Expr(1)).runToExprOrFail("InnerMacro")(renderErrors)).runToExprOrFail("OuterMacro")(renderErrors)
+
   def testExtensionLoadingResultToMIO: Expr[Data] = {
     def processResult[A](result: MIO[ExtensionLoadingResult.Loaded[A]]): MIO[Data] =
       result.redeem(loaded =>

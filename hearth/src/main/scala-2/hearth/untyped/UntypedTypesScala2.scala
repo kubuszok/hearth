@@ -530,13 +530,11 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       } else if (isSealed(instanceTpe)) {
         forceTypeSymbolInitialization(A)
 
-        def extractRecursively(t: TypeSymbol): Vector[TypeSymbol] =
-          if (t.asClass.isSealed) t.asClass.knownDirectSubclasses.toVector.map(_.asType).flatMap(extractRecursively)
-          else Vector(t)
-
         Some(
           // calling .distinct here as `knownDirectSubclasses` returns duplicates for multiply-inherited types
-          extractRecursively(A.asType).distinct
+          A.asClass.knownDirectSubclasses.toVector
+            .map(_.asType)
+            .distinct
             .sorted(symbolOrdering)
             .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
             .toList
@@ -565,8 +563,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     override def typeConstructor(untyped: UntypedType): UntypedType =
       widenSingletons(untyped).dealias.typeConstructor
 
+    // Dealiased like `typeConstructor`, so that both together rebuild the type even for an alias reordering its parameters.
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      widenSingletons(untyped).typeArgs
+      widenSingletons(untyped).dealias.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       appliedType(widenSingletons(untyped).typeConstructor, args)

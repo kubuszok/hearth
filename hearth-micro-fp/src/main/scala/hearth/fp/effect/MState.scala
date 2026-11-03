@@ -121,28 +121,24 @@ final case class MState private[effect] (
       }
 
   private def forkLocals(locals: Map[MLocal[?], Value], explicitlyRewind: MState): Map[MLocal[?], Value] =
-    if (explicitlyRewind eq MState.empty) locals
-    else
-      handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
-        _.map { local =>
-          local match {
-            case _: MLocal.SequentialOnParallel[?] =>
-              // Shared: take latest value without forking. Prefer explicitlyRewind (branch A's result).
-              val fromRewind = explicitlyRewind.locals.get(local.asInstanceOf[MLocal[?]])
-              val fromCurrent = locals.get(local.asInstanceOf[MLocal[?]])
-              local -> (fromRewind orElse fromCurrent).getOrElse(Value(local.initial, nextVersionOf(local)))
-            case fjp: MLocal.ForkJoinParallel[Any @unchecked] =>
-              locals.get(local.asInstanceOf[MLocal[?]]) match {
-                case Some(a) => local -> Value(fjp.fork(a.value), fjp.nextVersion)
-                case None    =>
-                  local -> Value(
-                    local.initial,
-                    fjp.nextVersion
-                  ) // We do this so that None won't fall back on value from another computation.
-              }
-          }
-        }.toMap
-      }
+    handleLocalsCasting(locals.keySet, explicitlyRewind.locals.keySet) {
+      _.map { local =>
+        local match {
+          case _: MLocal.SequentialOnParallel[?] =>
+            // Shared: take latest value without forking. Prefer explicitlyRewind (branch A's result).
+            val fromRewind = explicitlyRewind.locals.get(local.asInstanceOf[MLocal[?]])
+            val fromCurrent = locals.get(local.asInstanceOf[MLocal[?]])
+            local -> (fromRewind orElse fromCurrent).getOrElse(Value(local.initial, nextVersionOf(local)))
+          case fjp: MLocal.ForkJoinParallel[Any @unchecked] =>
+            locals.get(local.asInstanceOf[MLocal[?]]) match {
+              case Some(a) => local -> Value(fjp.fork(a.value), fjp.nextVersion)
+              // Like ZIO's FiberRef, a local never written before the fork is not forked: it starts from `initial`.
+              // Storing it keeps None from falling back on a value from another branch.
+              case None => local -> Value(local.initial, fjp.nextVersion)
+            }
+        }
+      }.toMap
+    }
 
   private def joinLocals(locals1: Map[MLocal[?], Value], locals2: Map[MLocal[?], Value]): Map[MLocal[?], Value] =
     if (locals1 eq locals2) locals1

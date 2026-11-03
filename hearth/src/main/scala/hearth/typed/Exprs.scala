@@ -372,10 +372,18 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
           Expr.quote(hearth.data.Data((Expr.splice(inner))))
         },
         onMap = m => {
+          // A `Map(...)` literal with more than 4 entries builds a `HashMap`, losing the insertion order that `Data`
+          // keeps, so the entries are added one by one to a `ListMap`.
+          @scala.annotation.nowarn
           implicit val st: Type[String] = StringType
           implicit val dt: Type[hearth.data.Data] = DataType
-          val inner: Expr[Map[String, hearth.data.Data]] = Expr(m)
-          Expr.quote(hearth.data.Data(Expr.splice(inner)))
+          val entries = m.foldLeft(Expr.quote(scala.collection.immutable.ListMap.empty[String, hearth.data.Data])) {
+            case (acc, (key, value)) =>
+              val keyExpr: Expr[String] = Expr(key)
+              val valueExpr: Expr[data.Data] = toExpr(value)
+              Expr.quote(Expr.splice(acc).updated(Expr.splice(keyExpr), Expr.splice(valueExpr)))
+          }
+          Expr.quote(hearth.data.Data(Expr.splice(entries): Map[String, hearth.data.Data]))
         }
       )
       def fromExpr(expr: Expr[data.Data]): Option[data.Data] = expr.semiEval.toOption

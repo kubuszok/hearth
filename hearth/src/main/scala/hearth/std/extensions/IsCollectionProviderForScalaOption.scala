@@ -59,7 +59,7 @@ final class IsCollectionProviderForScalaOption extends StandardMacroExtension { 
                   val list = Expr.splice(builder).result()
                   if (list.lengthIs <= 1)
                     Right(Expr.splice(Expr.quote(list.headOption).asInstanceOf[Expr[A]]))
-                  else Left(s"Expected at most 1 element for Option, got $${list.size}")
+                  else Left("Expected at most 1 element for Option, got " + list.size)
                 },
               None
             )

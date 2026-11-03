@@ -170,12 +170,15 @@ trait UntypedMethods { this: MacroCommons =>
         instanceTpe: UntypedType,
         instance: Option[UntypedExpr],
         method: UntypedMethod
-    ): List[List[UntypedExpr]] =
+    ): List[List[UntypedExpr]] = {
+      // The default of a parameter in a later list takes all the earlier lists as its own parameters
+      // (`def f(a: Int)(b: Int = a)` has `def f$default$2(a: Int): Int`), so the lists are resolved in order.
+      var resolved = arguments
       method.parameters.map { params =>
-        params.view.map { case (paramName, untyped) =>
+        val adapted = params.view.map { case (paramName, untyped) =>
           def defaultValue = untyped.default(instanceTpe).map { method =>
-            // Default value is called on the same instance as it's method, and without any arguments
-            method.unsafeApply(instanceTpe)(instance, Map.empty)
+            // Default value is called on the same instance as its method
+            method.unsafeApply(instanceTpe)(instance, resolved)
           }
           val provided = arguments.get(paramName).orElse(defaultValue).getOrElse {
             // $COVERAGE-OFF$
@@ -185,10 +188,15 @@ trait UntypedMethods { this: MacroCommons =>
             )
             // $COVERAGE-ON$
           }
-          // Vararg (repeated) parameters expect an Expr[Seq[A]] argument - splice it as `seq: _*`.
-          if (untyped.isVararg) adaptVarargArgument(provided) else provided
+          paramName -> provided
         }.toList
+        resolved = resolved ++ adapted
+        // Vararg (repeated) parameters expect an Expr[Seq[A]] argument - splice it as `seq: _*`.
+        adapted.map { case (paramName, provided) =>
+          if (params(paramName).isVararg) adaptVarargArgument(provided) else provided
+        }
       }
+    }
   }
 
   /** Platform-specific: wraps an `Expr[Seq[A]]` argument so that it can be spliced into a vararg (repeated) parameter
@@ -530,10 +538,10 @@ trait UntypedMethods { this: MacroCommons =>
         if (isFinal) sb.append(hl.highlightKeyword("final")).append(" ")
         if (isAbstract && isOverride) sb.append(hl.highlightKeyword("abstract")).append(" ")
         if (isOverride) sb.append(hl.highlightKeyword("override")).append(" ")
-        if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
-        else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
-        else if (isLazy)
+        if (isLazy)
           sb.append(hl.highlightKeyword("lazy")).append(" ").append(hl.highlightKeyword("val")).append(" ")
+        else if (isVal) sb.append(hl.highlightKeyword("val")).append(" ")
+        else if (isVar) sb.append(hl.highlightKeyword("var")).append(" ")
         else sb.append(hl.highlightKeyword("def")).append(" ")
         sb.append(name)
       }

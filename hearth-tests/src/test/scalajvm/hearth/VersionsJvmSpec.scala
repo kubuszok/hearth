@@ -70,6 +70,13 @@ final class VersionsJvmSpec extends MacroSuite {
     }
   }
 
+  group("object Platform") {
+
+    test("byHearth should be Jvm for the JVM build of Hearth") {
+      Platform.byHearth ==> Platform.Jvm
+    }
+  }
+
   group("object HearthVersion") {
 
     test("byHearthLibrary should either resolve a Jvm HearthVersion or be None (running from class dir)") {

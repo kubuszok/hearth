@@ -22,27 +22,32 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
       /** Applies type arguments from supertype to subtype if there are any */
       def subtypeTypeOf(instanceTpe: UntypedType, subtype: Symbol): UntypedType =
-        subtype.primaryConstructor.paramSymss match {
-          // subtype takes type parameters
-          case typeParamSymbols :: _ if typeParamSymbols.exists(_.isType) =>
-            // An alias' symbol and type arguments need not line up with the parent's type parameters
-            // (`type U[A] = Parent[Any, A]`, possibly chained, renamed or reordered), so we use the dealiased type.
-            val parentTpe = instanceTpe.dealias
-            // we have to figure how subtypes type params map to parent type params
-            val appliedTypeByParam: Map[String, TypeRepr] =
+        // A parameterless enum case is a `val`: the compiler refers to it with a `TermRef` (`Color.Red.type`), and only
+        // that resolves the case's own `Mirror.Singleton` and `ValueOf`. A `TypeRef` on the term prints and compares
+        // the same, but implicit search treats it as the enum.
+        if subtype.isTerm && !subtype.flags.is(Flags.JavaDefined) then subtype.termRef
+        else
+          subtype.primaryConstructor.paramSymss match {
+            // subtype takes type parameters
+            case typeParamSymbols :: _ if typeParamSymbols.exists(_.isType) =>
+              // An alias' symbol and type arguments need not line up with the parent's type parameters
+              // (`type U[A] = Parent[Any, A]`, possibly chained, renamed or reordered), so we use the dealiased type.
+              val parentTpe = instanceTpe.dealias
+              // we have to figure how subtypes type params map to parent type params
+              val appliedTypeByParam: Map[String, TypeRepr] =
+                subtype.typeRef
+                  .baseType(parentTpe.typeSymbol)
+                  .typeArgs
+                  .map(_.typeSymbol.name)
+                  .zip(parentTpe.typeArgs)
+                  .toMap
+              // TODO: some better error message if child has an extra type param that doesn't come from the parent
+              val typeParamReprs: List[TypeRepr] = typeParamSymbols.map(_.name).map(appliedTypeByParam)
+              subtype.typeRef.appliedTo(typeParamReprs)
+            // subtype is monomorphic
+            case _ =>
               subtype.typeRef
-                .baseType(parentTpe.typeSymbol)
-                .typeArgs
-                .map(_.typeSymbol.name)
-                .zip(parentTpe.typeArgs)
-                .toMap
-            // TODO: some better error message if child has an extra type param that doesn't come from the parent
-            val typeParamReprs: List[TypeRepr] = typeParamSymbols.map(_.name).map(appliedTypeByParam)
-            subtype.typeRef.appliedTo(typeParamReprs)
-          // subtype is monomorphic
-          case _ =>
-            subtype.typeRef
-        }
+          }
 
       def symbolAvailable(symbol: Symbol, scope: Accessible): Boolean = {
         // For setters (name_=), visibility may only be recorded on the corresponding getter/val.
@@ -110,7 +115,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         // baseClasses of each base (excluding the base itself and self), used to drop transitive ancestors.
         val ancestorsOfBases: Set[Symbol] =
           bases.flatMap(b => typeReprBaseClasses(b.typeRef).filterNot(s => s == b || s == selfSym)).toSet
-        bases.filterNot(ancestorsOfBases.contains).map(tpe.baseType)
+        // The linearization lists the mixins last-declared first (`class C extends A with T1 with T2` gives T2, T1, A),
+        // so reversing it gives the declaration order.
+        bases.filterNot(ancestorsOfBases.contains).reverse.map(tpe.baseType)
       }
 
       /** Makes an annotation tree obtained from `Symbol.annotations` spliceable into macro output.
@@ -155,7 +162,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       TypeRepr.typeConstructorOf(clazz)
 
     override def isInJavaLangPackage(instanceTpe: UntypedType): Boolean = {
-      val sym = instanceTpe.typeSymbol
+      val sym = instanceTpe.dealias.typeSymbol
       !sym.isNoSymbol && sym.owner.isPackageDef && sym.owner.fullName == "java.lang"
     }
 
@@ -191,7 +198,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val tupleBase = fromTyped[Tuple]
       val nonEmptyBase = fromTyped[NonEmptyTuple]
-      instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) && !(instanceTpe =:= nonEmptyBase)
+      // `Nothing` and `Null` are subtypes of `Tuple` too, but they are not tuples.
+      !(instanceTpe <:< fromTyped[Null]) && instanceTpe <:< tupleBase && !(instanceTpe =:= tupleBase) &&
+      !(instanceTpe =:= nonEmptyBase)
     }
 
     // Named tuple detection (Scala 3.7+ only; returns None on 3.3.x where the module doesn't exist)
@@ -223,6 +232,10 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     // non-module class: aliases of OBJECTS (e.g. `type EmptyTuple = EmptyTuple.type`, whose dealias is a module class
     // and must stay `isClass=false`/non-final), direct object types and ordinary aliases stay untouched.
     private def classificationSymbol(instanceTpe: UntypedType): Symbol = {
+      val term = instanceTpe.dealias.termSymbol
+      // The type symbol of a parameterless enum case's `TermRef` is the enum class, which would make the case look
+      // sealed and abstract; its own symbol is the `val`.
+      if !term.isNoSymbol && term.flags.is(Flags.Enum) && !term.flags.is(Flags.Module) then return term
       val orig = instanceTpe.typeSymbol
       val dealiased = instanceTpe.dealias.typeSymbol
       if dealiased != orig && !dealiased.isNoSymbol && dealiased.isClassDef && !dealiased.flags.is(Flags.Module)
@@ -374,9 +387,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def parents(instanceTpe: UntypedType): List[UntypedType] =
       instanceTpe.dealias match {
         case AndType(left, right) => List(left, right)
-        case _                    =>
-          if instanceTpe.typeSymbol.isNoSymbol then Nil
-          else typeReprDirectParents(instanceTpe)
+        case dealiased            =>
+          if dealiased.typeSymbol.isNoSymbol then Nil
+          else typeReprDirectParents(dealiased)
       }
 
     override def baseClasses(instanceTpe: UntypedType): List[UntypedType] =
@@ -695,11 +708,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def companionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] =
       if untyped.isObject then None
       else {
-        val sym = untyped.typeSymbol
+        // An alias has no companion of its own, the aliased class does (opaque types are not dealiased).
+        val sym = untyped.dealias.typeSymbol
         val isOpaque = sym.flags.is(Flags.Opaque)
         // First try the standard companionModule lookup (works for classes)
         Option(sym.companionModule)
-          .filterNot(_.isNoSymbol)
+          .filterNot(module => module.isNoSymbol || isConstructorProxy(module))
           .orElse {
             // For opaque types, companionModule returns NoSymbol because opaque types are type aliases.
             // We need to look for a module with the same name in the owner's declarations.
@@ -715,6 +729,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             // We need to use 2 of them in different places, so we have to pass a tuple.
             (subtypeTypeOf(untyped, module.moduleClass), companionRef(untyped, module, isOpaque))
           }
+      }
+
+    // Scala 3 synthesizes an object with only `apply` "constructor proxies" for every class (so that `Foo()` works
+    // without `new`), and `companionModule` returns it even for a class without a companion. The flag marking it is not
+    // exposed by the Quotes API, so it is recognized by its shape.
+    private def isConstructorProxy(module: Symbol): Boolean =
+      module.flags.is(Flags.Synthetic) && module.moduleClass.declarations.forall { member =>
+        member.name == "apply" && member.flags.is(Flags.Synthetic)
       }
 
     override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
@@ -1056,8 +1078,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         case other                 => other
       }
 
+    // Dealiased like `typeConstructor`, so that both together rebuild the type even for an alias reordering its parameters.
     override def typeArguments(untyped: UntypedType): List[UntypedType] =
-      widenSingletons(untyped).typeArgs
+      widenSingletons(untyped).dealias.typeArgs
 
     override def applyTypeArgs(untyped: UntypedType, args: List[UntypedType]): UntypedType =
       // Apply to the (dealiased) type CONSTRUCTOR rather than the type as-given, so that re-applying an

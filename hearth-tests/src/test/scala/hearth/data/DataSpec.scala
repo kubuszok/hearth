@@ -11,6 +11,20 @@ final class DataSpec extends MacroSuite {
       DataFixtures.example <==> DataFixturesImpl.example
     }
 
+    test("should be convertible to Expr[Data] also for empty, nested, null and escaped values") {
+
+      val actual = DataFixtures.exampleEdgeCases
+      actual <==> DataFixturesImpl.exampleEdgeCases
+      // `<==>` does not see a difference between a missing and a null list element, so compare the values too
+      assert(actual == DataFixturesImpl.exampleEdgeCases)
+    }
+
+    // Checked with compileErrors, so that the whole spec still compiles when the generated code does not.
+    test("should be convertible to Expr[Data] for an empty map, also nested in another map") {
+      compileErrors("hearth.data.DataFixtures.exampleEmptyMap") ==> ""
+      compileErrors("hearth.data.DataFixtures.exampleNestedEmptyMap") ==> ""
+    }
+
     // test("should be able to diff with another Data") {
 
     //   DataFixtures.example <==> Data(

@@ -65,17 +65,7 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
             "rhs" -> Data.map(
               "node" -> Data("MethodCall"),
               "name" -> Data("nextInt"),
-              "receiver" -> Data.map(
-                "node" -> Data("MethodCall"),
-                "name" -> Data("Random"),
-                "receiver" -> Data.map(
-                  "node" -> Data("MethodCall"),
-                  "name" -> Data("util"),
-                  "receiver" -> Data.map("node" -> Data("Other"), "plainPrint" -> Data("scala")),
-                  "args" -> Data.list()
-                ),
-                "args" -> Data.list()
-              ),
+              "receiver" -> Data.map("node" -> Data("Other"), "plainPrint" -> Data("Random")),
               "args" -> Data.list()
             )
           )
@@ -104,11 +94,51 @@ final class DestructuredExprsScala3Spec extends MacroSuite {
       }
       result <==> Data.list(
         Data.map(
-          "plainPrint" -> Data("import ImplicitsOrderingmathscala.given"),
+          "plainPrint" -> Data("import Ordering.Implicits.given"),
           "hasPosition" -> Data(true),
           "rebuiltAsUnit" -> Data(true)
         ),
         Data.map("plainPrint" -> Data("val value = 1"), "hasPosition" -> Data(true), "rebuiltAsUnit" -> Data(true))
+      )
+    }
+  }
+
+  group("typed.DestructuredExpr (Scala 3 specifics)") {
+
+    test("a named given alias in a block is a lazy implicit LocalBinding") {
+      import DestructuredExprsFixtures.testLocalBindings
+      testLocalBindings {
+        given ctx: examples.parsed_exprs.Ctx = examples.parsed_exprs.Ctx.instance
+        ctx.toString
+      } <==> Data.list(
+        Data.map(
+          "name" -> Data("ctx"),
+          "type" -> Data("hearth.examples.parsed_exprs.Ctx"),
+          "flags" -> Data.list(Data("lazy"), Data("implicit")),
+          "hasPosition" -> Data(true)
+        )
+      )
+    }
+
+    test("a parameterless Scala 3 enum case is a Singleton named by its module path") {
+      import DestructuredExprsFixtures.testParseDetailed
+      testParseDetailed(examples.ExampleEnum.ExampleEnumValue) <==> Data.map(
+        "nodeType" -> Data("Singleton"),
+        "name" -> Data("ExampleEnum.ExampleEnumValue")
+      )
+    }
+
+    test("a singleton-typed lambda parameter keeps its singleton type in both type and declaredType") {
+      import DestructuredExprsFixtures.testParseLambda
+      testParseLambda((x: examples.destructurededge.Marker.type) => x) <==> Data.map(
+        "params" -> Data.list(
+          Data.map(
+            "name" -> Data("x"),
+            "type" -> Data("hearth.examples.destructurededge.Marker.type"),
+            "declaredType" -> Data("hearth.examples.destructurededge.Marker.type")
+          )
+        ),
+        "body" -> Data.map("nodeType" -> Data("ParamRef"), "plainPrint" -> Data("x"), "paramName" -> Data("x"))
       )
     }
   }

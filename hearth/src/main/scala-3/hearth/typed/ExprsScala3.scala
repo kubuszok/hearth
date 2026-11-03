@@ -60,10 +60,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         def apply(prefix: String): String = impl.invoke(quotes.reflect.Symbol, prefix).asInstanceOf[String]
 
         def apply[A: Type](freshName: FreshName, expr: Expr[A]): String = freshName match {
-          case FreshName.FromPrefix(prefix)       => apply(prefix)
-          case FreshName.FromExpr if expr != null => apply(expr.asTerm.show(using Printer.TreeCode))
+          case FreshName.FromPrefix(prefix)                                        => apply(prefix)
+          case FreshName.FromExpr if expr != null && identifierFrom(expr).nonEmpty => apply(identifierFrom(expr))
           case _ => apply(unapplyTypes[A].show(using Printer.TypeReprShortCode).toLowerCase)
         }
+
+        // The printed expression is arbitrary code (`sth.toString()`), not something usable as a name.
+        private def identifierFrom[A](expr: Expr[A]): String =
+          expr.asTerm.show(using Printer.TreeCode).filter(_.isLetterOrDigit).dropWhile(_.isDigit).toLowerCase
 
         def bind[A: Type](freshName: FreshName, flags: Flags): Symbol =
           Symbol.newBind(currentSpliceOwner, apply[A](freshName, null), flags, TypeRepr.of[A])
@@ -627,15 +631,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val ownerName = sym.owner.fullName
         val valueName = sym.name
         val candidates = moduleCandidates(ownerName)
+        // A Java enum value is a static field of the enum class, while a parameterless Scala 3 enum case is a static
+        // field of the companion's module class (`Color$.Green`).
+        def staticField(className: String): Option[Any] =
+          try Option(java.lang.Class.forName(className).getField(valueName).get(null))
+          catch { case _: Throwable => None }
         val result = candidates.iterator
-          .flatMap { className =>
-            try {
-              val clazz = java.lang.Class.forName(className.stripSuffix("$"))
-              Option(clazz.getField(valueName).get(null))
-            } catch { case _: Throwable => None }
-          }
+          .flatMap(className => staticField(className.stripSuffix("$")).orElse(staticField(className)))
           .nextOption()
-        result.toRight(NonEmptyVector.one(s"Cannot resolve enum value: ${sym.fullName}"))
+        result.toRight(
+          NonEmptyVector.one(
+            s"Cannot resolve enum value: ${sym.fullName}"
+          )
+        )
       }
 
       private def moduleCandidates(fullName: String): Array[String] = {
@@ -716,12 +724,30 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         invokeMethod(receiver, bytecodeName, args).left.flatMap { _ =>
           if bytecodeName != name then invokeMethod(receiver, name, args)
           else
-            Left(
+            invokeValueClassExtension(receiver, sym, bytecodeName, args).toRight(
               NonEmptyVector.one(
                 s"Cannot invoke method '$name' on ${receiver.getClass.getName} with ${args.size} args"
               )
             )
         }
+      }
+
+      // A value class (e.g. `StringOps` from `augmentString`, `RichInt` from `intWrapper`) is erased to its underlying
+      // value, so its methods are not on the receiver's class but are `name$extension(underlying, args...)` methods of
+      // its companion module.
+      private def invokeValueClassExtension(receiver: Any, sym: Symbol, name: String, args: List[Any]): Option[Any] = {
+        val owner = sym.owner
+        if !(owner.isClassDef && owner.typeRef <:< TypeRepr.of[AnyVal]) then None
+        else
+          moduleCandidates(owner.fullName).iterator
+            .collectFirst { case ModuleSingleton(module) => module }
+            .flatMap { module =>
+              val extensionName = scala.reflect.NameTransformer.encode(name) + "$extension"
+              val candidates = module.getClass.getMethods.filter(_.getName == extensionName).toList
+              findMatchingMethod(candidates, receiver :: args).toOption.flatMap { case (method, preparedArgs) =>
+                scala.util.Try(method.invoke(module, preparedArgs.iterator.map(_.asInstanceOf[AnyRef]).toSeq*)).toOption
+              }
+            }
       }
 
       private def invokeMethod(receiver: Any, name: String, args: List[Any]): Result = {
@@ -750,7 +776,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def evalPrimitiveOp(receiver: Any, name: String, args: List[Any]): Result = {
         val decodedName = scala.reflect.NameTransformer.decode(name)
-        (receiver, decodedName, args) match {
+        // In arithmetic a Char is its Int code (`'a' + 1 == 98`, `'a'.toInt == 97`), but Character is not a Number.
+        def charAsInt(value: Any): Any = value match {
+          case c: java.lang.Character => java.lang.Integer.valueOf(c.charValue.toInt)
+          case other                  => other
+        }
+        val isArithmetic = receiver.isInstanceOf[Number] || receiver.isInstanceOf[java.lang.Character]
+        val (operand, operands) = if isArithmetic then (charAsInt(receiver), args.map(charAsInt)) else (receiver, args)
+        (operand, decodedName, operands) match {
           case (a: Number, _, List(b: Number))                       => evalNumericBinaryOp(a, b, decodedName)
           case (a: Number, "unary_-", Nil)                           => evalUnaryMinus(a)
           case (a: Number, "unary_+", Nil)                           => Right(a)
@@ -758,8 +791,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case (a: Number, _, Nil) if decodedName.startsWith("to")   => evalNumericConversion(a, decodedName)
           case (a: java.lang.Boolean, _, List(b: java.lang.Boolean)) => evalBooleanOp(a, b, decodedName)
           case (a: java.lang.Boolean, "unary_!", Nil)                => Right(!a)
-          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case (a: String, "+", List(b))                             => Right(a + b)
+          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case _                                                     =>
             Left(
               NonEmptyVector.one(
@@ -869,6 +902,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         case "toFloat"  => Right(a.floatValue: java.lang.Float)
         case "toShort"  => Right(a.shortValue: java.lang.Short)
         case "toByte"   => Right(a.byteValue: java.lang.Byte)
+        case "toChar"   => Right(a.intValue.toChar: java.lang.Character)
         case _          => Left(NonEmptyVector.one(s"Unsupported conversion: $name"))
       }
 
@@ -1209,10 +1243,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 case first :: Typed(Repeated(restArgs, _), _) :: Nil =>
                   extractArgs(first :: restArgs).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
                 case first :: rest :: Nil =>
-                  // rest might be wrapped differently - try to extract just the first element
-                  extractArgs(List(first)).flatMap { firstElems =>
-                    // If rest is an empty seq, just use first
-                    classTagFromType.map(ct => firstElems.toArray(using ct))
+                  // The varargs tail is not always a bare `Typed(Repeated(...))` (it can be wrapped, e.g. inlined).
+                  rest.asExprOf[Seq[A]] match {
+                    case Varargs(restExprs) =>
+                      extractArgs(first :: restExprs.map(_.asTerm).toList)
+                        .flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
+                    case _ => None
                   }
                 case _ =>
                   extractArgs(args).flatMap(elems => classTagFromType.map(ct => elems.toArray(using ct)))
@@ -1308,6 +1344,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def SeqExprCodec[A: ExprCodec: Type]: ExprCodec[Seq[A]] = {
       given FromExpr[A] = platformSpecific.implicits.ExprCodecIsFromExpr[A]
       given ToExpr[A] = platformSpecific.implicits.ExprCodecIsToExpr[A]
+      // The standard `FromExpr[Seq]` does not read `Seq.empty`, which is how the `ToExpr` below writes an empty Seq.
+      given FromExpr[Seq[A]] = new {
+        private val standard = FromExpr.SeqFromExpr[A]
+        override def unapply(expr: Expr[Seq[A]])(using scala.quoted.Quotes): Option[Seq[A]] = expr match {
+          case '{ Seq.empty[A] } => Some(Seq.empty[A])
+          case _                 => standard.unapply(expr)
+        }
+      }
       // Default implementation of ToExpr[Seq[A]] is not correct, uses VarArgs so for e.g.
       //   Seq(1)
       // we would print expression generating...
@@ -1551,6 +1595,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       case _                      => term
     }
 
+    // A parameterless enum case is a `TermRef` to its `val` (the type symbol of which is the enum class), while a Java
+    // enum value (and, on older shapes, an enum case) is typed with the value's own symbol.
+    private def enumCaseSymbolOf(tpe: TypeRepr): Option[Symbol] = {
+      def isEnumCase(sym: Symbol): Boolean =
+        !sym.isNoSymbol && sym.flags.is(Flags.Enum) &&
+          (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
+      Option(tpe.termSymbol).filter(isEnumCase).orElse(Option(tpe.typeSymbol).filter(isEnumCase))
+    }
+
     override def matchOn[A: Type, B: Type](toMatch: Expr[A])(cases: NonEmptyVector[MatchCase[Expr[B]]]): Expr[B] = {
       val uncheckedAnnot = Apply(
         Select(New(TypeTree.of[unchecked]), TypeRepr.of[unchecked].typeSymbol.primaryConstructor),
@@ -1576,8 +1629,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
             )
 
-            val sym = TypeRepr.of[Matched].typeSymbol
-            if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
+            val enumCase = enumCaseSymbolOf(TypeRepr.of[Matched])
+            if enumCase.isDefined
             then
             // Match a parameterless enum case by a SINGLETON TYPE TEST: `case arg : value.type`, which dotty compiles
             // to a reference-equality check (`arg eq value`). This dispatches BY VALUE (so it works even though the
@@ -1586,7 +1639,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             // variable pattern (scala/scala3#20350), and matching is by `eq` (not a checkcast), so it
             // never fails on other members of a union scrutinee. `Singleton(Ref(sym))` builds the `value.type` tree.
             // case arg : Enum.Value.type => ...
-            CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(sym)))), None, body)
+            CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(enumCase.get)))), None, body)
             // case arg : Enum.Value => ...
             else CaseDef(Bind(name, Typed(Wildcard(), TypeTree.of[Matched])), None, body)
 
@@ -1635,10 +1688,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 // A parameterless enum case: match by a SINGLETON TYPE TEST (`case name: value.type`, i.e. `name eq
                 // value`) so a lowercase case is not misread as a variable pattern (scala/scala3#20350)
                 // and no checkcast is inserted on other members of a union scrutinee. See the same shape in `TypeMatch`.
-                else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(
-                  Flags.StableRealizable
-                ))
-                then CaseDef(Bind(name, Typed(Wildcard(), Singleton(Ref(sym)))), None, body)
+                else if enumCaseSymbolOf(TypeRepr.of[ValueType]).isDefined
+                then CaseDef(
+                  Bind(name, Typed(Wildcard(), Singleton(Ref(enumCaseSymbolOf(TypeRepr.of[ValueType]).get)))),
+                  None,
+                  body
+                )
                 else if !termSym.isNoSymbol then CaseDef(Bind(name, valueTerm), None, body)
                 else {
                   val eqMethod = TypeRepr.of[Any].typeSymbol.methodMember("==").head
@@ -5383,7 +5438,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
 
       case Ident(name) if term.symbol.flags.is(Flags.Module) =>
-        new DestructuredExpr.Singleton(dstrTpeOf(term), name, () => term)
+        new DestructuredExpr.Singleton(dstrTpeOf(term), dstrSingletonPath(term).getOrElse(name), () => term)
+
+      case _ if dstrSingletonPath(term).isDefined =>
+        new DestructuredExpr.Singleton(dstrTpeOf(term), dstrSingletonPath(term).get, () => term)
 
       case _ =>
         dstrTryMethodCall(term, lambdaParams).getOrElse {
@@ -5393,6 +5451,36 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
             term.show(using Printer.TreeShortCode)
           )
         }
+    }
+  }
+
+  // A reference to an object nested in another object (`Shape.Circle`), a parameterless enum case (`Color.Red`) and
+  // `Nil` (a `val` of the `scala` package object whose type is an object) are singletons too, not just an `Ident` of a
+  // top-level object. They are named by their path of enclosing objects, without the packages (which, on Scala 3,
+  // are modules as well).
+  private def dstrSingletonPath(termAny: Any): Option[String] = {
+    import quotes.reflect.*
+    val term = termAny.asInstanceOf[Term]
+    def isPackageLike(sym: Symbol): Boolean = {
+      val name = sym.name.stripSuffix("$")
+      sym.isPackageDef || sym.flags.is(Flags.Package) || name == "package" || name.endsWith("$package")
+    }
+    def isObject(sym: Symbol): Boolean = sym.flags.is(Flags.Module) && !isPackageLike(sym)
+    def isStableValue(sym: Symbol): Boolean =
+      sym.isTerm && !sym.flags.is(Flags.Mutable) &&
+        (sym.isValDef || (sym.isDefDef && sym.paramSymss.isEmpty && sym.flags.is(Flags.StableRealizable)))
+    val sym = term.symbol
+    val isSingleton = !sym.isNoSymbol && !isPackageLike(sym) && (isObject(sym) ||
+      (sym.isTerm && sym.flags.is(Flags.Enum) && sym.flags.is(Flags.StableRealizable)) ||
+      (isStableValue(sym) && isObject(term.tpe.widen.typeSymbol)))
+    def path(sym: Symbol): String = {
+      val owner = sym.owner
+      val name = sym.name.stripSuffix("$")
+      if !owner.isNoSymbol && isObject(owner) then s"${path(owner)}.$name" else name
+    }
+    term match {
+      case _: Ident | _: Select if isSingleton => Some(path(sym))
+      case _                                   => None
     }
   }
 

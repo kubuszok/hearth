@@ -52,5 +52,28 @@ final class TypeNameInjectionSpec extends MacroSuite {
     test("no TypeName instance falls back to default") {
       assertEquals(TypeName[Boolean].plainPrint, "scala.Boolean")
     }
+
+    group("context bound injection") {
+
+      def listTypeName[A: TypeName]: TypeName[List[A]] = TypeName.derived
+
+      test("uses the context bound's instance for the abstract type parameter") {
+        listTypeName[String].plainPrint <==> "scala.collection.immutable.List[java.lang.String]"
+        listTypeName[String].simplePrint <==> "List[String]"
+        listTypeName[String].shortPrint <==> "List"
+      }
+
+      test("uses a custom instance passed through the context bound") {
+        implicit val custom: TypeName[String] = new TypeName[String] {
+          def prettyPrint: String = "Str"
+          def plainPrint: String = "Str"
+          def simplePrint: String = "Str"
+          def shortPrint: String = "Str"
+        }
+        listTypeName[String].plainPrint <==> "scala.collection.immutable.List[Str]"
+        listTypeName[String].simplePrint <==> "List[Str]"
+        assert(listTypeName[String].prettyPrint.contains("Str"))
+      }
+    }
   }
 }

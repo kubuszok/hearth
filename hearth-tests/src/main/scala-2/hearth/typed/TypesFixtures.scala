@@ -76,6 +76,15 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
     testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
 
   def testLazyTypeScopeSafetyImpl: c.Expr[Data] = testLazyTypeScopeSafety
+  def testBuiltInPredicatesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testBuiltInPredicates[A]
+  def testHierarchyListsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testHierarchyLists[A]
+  def testChildrenListImpl[A: c.WeakTypeTag]: c.Expr[Data] = testChildrenList[A]
+  def testExhaustiveChildrenImpl[A: c.WeakTypeTag]: c.Expr[Data] = testExhaustiveChildren[A]
+  def testCompanionObjectImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCompanionObject[A]
+  def testCompanionObjectValueImpl[A: c.WeakTypeTag]: c.Expr[Any] = testCompanionObjectValue[A]
+  def testJavaBeanVisibilityImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaBeanVisibility[A]
+  def testTypeCacheAndLazyImpl: c.Expr[Data] = testTypeCacheAndLazy
+  def testTypeCodecDecodingImpl: c.Expr[Data] = testTypeCodecDecoding
 }
 
 object TypesFixtures {
@@ -143,4 +152,14 @@ object TypesFixtures {
   def testCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = macro TypesFixtures.testCtorK1OfOwnTypeParameterImpl[Alg]
 
   def testLazyTypeScopeSafety: Data = macro TypesFixtures.testLazyTypeScopeSafetyImpl
+
+  def testBuiltInPredicates[A]: Data = macro TypesFixtures.testBuiltInPredicatesImpl[A]
+  def testHierarchyLists[A]: Data = macro TypesFixtures.testHierarchyListsImpl[A]
+  def testChildrenList[A]: Data = macro TypesFixtures.testChildrenListImpl[A]
+  def testExhaustiveChildren[A]: Data = macro TypesFixtures.testExhaustiveChildrenImpl[A]
+  def testCompanionObject[A]: Data = macro TypesFixtures.testCompanionObjectImpl[A]
+  def testCompanionObjectValue[A]: Any = macro TypesFixtures.testCompanionObjectValueImpl[A]
+  def testJavaBeanVisibility[A]: Data = macro TypesFixtures.testJavaBeanVisibilityImpl[A]
+  def testTypeCacheAndLazy: Data = macro TypesFixtures.testTypeCacheAndLazyImpl
+  def testTypeCodecDecoding: Data = macro TypesFixtures.testTypeCodecDecodingImpl
 }
