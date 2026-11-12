@@ -318,6 +318,14 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
+        test("should evaluate block with String concatenation") {
+          testSemiEval { val a = "hello"; a + " world" } <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("hello world"),
+            "class" -> Data("java.lang.String")
+          )
+        }
+
         test("should evaluate mixed: 2 + \"foo\".length") {
           testSemiEval(2 + "foo".length) <==> Data.map(
             "status" -> Data("success"),
