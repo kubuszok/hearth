@@ -758,8 +758,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case (a: Number, _, Nil) if decodedName.startsWith("to")   => evalNumericConversion(a, decodedName)
           case (a: java.lang.Boolean, _, List(b: java.lang.Boolean)) => evalBooleanOp(a, b, decodedName)
           case (a: java.lang.Boolean, "unary_!", Nil)                => Right(!a)
-          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case (a: String, "+", List(b))                             => Right(a + b)
+          case (a: Comparable[?], _, List(b))                        => evalComparisonOp(a, b, decodedName)
           case _                                                     =>
             Left(
               NonEmptyVector.one(
