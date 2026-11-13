@@ -513,8 +513,8 @@ final class ClassesSpec extends MacroSuite {
 
       test("returns every overload with the given name, and nothing for an unknown name") {
         testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("foo") <==> Data.list(
-          Data("(s: java.lang.String)"),
-          Data("(i: scala.Int)")
+          Data("(i: scala.Int)"),
+          Data("(s: java.lang.String)")
         )
         testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("bar") <==> Data.list(Data(""))
         testClassMethodOverloads[examples.classesedge.ClassWithOverloads]("missing") <==> Data.list()

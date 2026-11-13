@@ -797,6 +797,16 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   object UntypedMethod extends UntypedMethodModule {
 
+    private val declarationsByOwner = scala.collection.mutable.Map.empty[Symbol, Map[Symbol, Int]]
+    override protected def declarationIndex(method: UntypedMethod): Int = {
+      val owner = if method.symbol.isNoSymbol then Symbol.noSymbol else method.symbol.owner
+      if owner.isNoSymbol then Int.MaxValue
+      else
+        declarationsByOwner
+          .getOrElseUpdate(owner, owner.declarations.zipWithIndex.toMap)
+          .getOrElse(method.symbol, Int.MaxValue)
+    }
+
     // Workaround to contain @experimental (`Flags.AbsOverride` on 3.3) from polluting the whole codebase
     private[UntypedMethodsScala3] lazy val absOverrideFlag: Flags =
       Flags.getClass.getMethod("AbsOverride").invoke(Flags).asInstanceOf[Flags]

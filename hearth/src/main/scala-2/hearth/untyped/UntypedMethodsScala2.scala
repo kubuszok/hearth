@@ -493,6 +493,14 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   object UntypedMethod extends UntypedMethodModule {
 
+    private val declarationsByOwner = scala.collection.mutable.Map.empty[Symbol, Map[Symbol, Int]]
+    override protected def declarationIndex(method: UntypedMethod): Int = {
+      val owner = method.symbol.owner
+      declarationsByOwner
+        .getOrElseUpdate(owner, owner.info.decls.toList.zipWithIndex.toMap)
+        .getOrElse(method.symbol, Int.MaxValue)
+    }
+
     private def parse(
         isDeclared: Boolean,
         isConstructorArgument: Boolean,

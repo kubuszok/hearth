@@ -1436,7 +1436,7 @@ trait Classes { this: MacroCommons =>
           // Every parent lists the members it inherits too, so only the declaring one says where the method comes from.
           val representative = methodsWithParent.find(_._1.isDeclared).getOrElse(methodsWithParent.head)
           val method = representative._1
-          val declaredIn = representative._2
+          val declaredIn = if (method.isDeclared) representative._2 else declaringBaseClass(method, representative._2)
 
           if (method.isFinal) {
             List(ClassifiedMethod(method, MethodClassification.CannotOverride, declaredIn))
@@ -1464,6 +1464,19 @@ trait Classes { this: MacroCommons =>
       * the printed parameter types. Distinguishes overloads (different arity / parameter types) while remaining equal
       * for the same method seen through multiple parents (overrides / diamonds).
       */
+    // A method inherited by every listed parent is declared by one of their base classes, not by a listed parent.
+    private def declaringBaseClass[A: Type](method: Method, parentType: ??): ?? = {
+      val signature = methodSignatureKey(method)
+      import parentType.Underlying as Parent
+      Type[Parent].baseClasses
+        .find { baseClass =>
+          UntypedMethod
+            .unsortedMethods(baseClass.asUntyped)
+            .exists(u => u.isDeclared && u.name == method.name && methodSignatureKey(u.asTyped[A]) == signature)
+        }
+        .getOrElse(parentType)
+    }
+
     private[Classes] def methodSignatureKey(m: Method): List[List[String]] =
       m.totalParameters.map(_.toList.map { case (_, param) => param.tpe.plainPrint })
 
