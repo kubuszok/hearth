@@ -25,3 +25,13 @@ enum LowerEnum1 {
 enum LowerEnum2 {
   case solo, team, school
 }
+
+// Annotations on the cases themselves (not on the enum): a parameterless case is a `val`, so they are on its term symbol.
+@examples.methods.ExampleAnnotation2(0)
+enum AnnotatedCasesEnum {
+  @examples.methods.ExampleAnnotation
+  case AnnotatedValue
+  @examples.methods.ExampleAnnotation2(2)
+  case AnnotatedClass(a: Int)
+  case NotAnnotatedValue
+}
