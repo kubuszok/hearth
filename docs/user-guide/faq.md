@@ -19,8 +19,7 @@ Hearth is possible, because:
 
 ## Do I need this library if I don't want to cross-compile?
 
-**If your macro does more than quote values - most likely yes.** Cross-compilation is one of Hearth's goals, but not
-the main reason to use it.
+**If your macro does more than quote values - most likely yes.**
 
 Hearth's main value is in robust, tested utilities that handle the corner cases your users would otherwise report to
 you, and in a high-level API that lets you (or your coding agent) glue together well-defined building blocks instead of
