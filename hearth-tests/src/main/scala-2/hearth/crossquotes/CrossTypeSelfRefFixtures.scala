@@ -13,6 +13,9 @@ final private class CrossTypeSelfRefFixtures(val c: blackbox.Context)
   def testSelfReferentialImplicitTypeImpl: c.Expr[Data] = testSelfReferentialImplicitType
 
   def testSelfReferentialImplicitCtorImpl: c.Expr[Data] = testSelfReferentialImplicitCtor
+
+  def testSelfReferentialImplicitTypeInObjectImpl: c.Expr[Data] =
+    testSelfReferentialImplicitTypeInObject
 }
 
 object CrossTypeSelfRefFixtures {
@@ -20,4 +23,7 @@ object CrossTypeSelfRefFixtures {
   def testSelfReferentialImplicitType: Data = macro CrossTypeSelfRefFixtures.testSelfReferentialImplicitTypeImpl
 
   def testSelfReferentialImplicitCtor: Data = macro CrossTypeSelfRefFixtures.testSelfReferentialImplicitCtorImpl
+
+  def testSelfReferentialImplicitTypeInObject: Data =
+    macro CrossTypeSelfRefFixtures.testSelfReferentialImplicitTypeInObjectImpl
 }

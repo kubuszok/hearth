@@ -39,6 +39,22 @@ trait CrossTypeSelfRefFixturesImpl { this: MacroTypedCommons =>
     )
   }
 
+  /** An object of the macro bundle (e.g. a derivation rule) providing the implicit `Type`s its methods need. */
+  object SelfRefRuleObject {
+    implicit val StringT: Type[String] = Type.of[String]
+    implicit val PairT: Type[(String, Int)] = Type.of[(String, Int)]
+  }
+
+  def testSelfReferentialImplicitTypeInObject: Expr[Data] = {
+    def printed[A](tpe: Type[A]): Data = Data(if ((tpe: Any) == null) "<null>" else tpe.plainPrint)
+    Expr(
+      Data.map(
+        "objectVal" -> printed(SelfRefRuleObject.StringT),
+        "objectValOfAppliedType" -> printed(SelfRefRuleObject.PairT)
+      )
+    )
+  }
+
   def testSelfReferentialImplicitCtor: Expr[Data] = {
     implicit val selfRefOptionCtor: Type.Ctor1[Option] = Type.Ctor1.of[Option]
     Expr(
