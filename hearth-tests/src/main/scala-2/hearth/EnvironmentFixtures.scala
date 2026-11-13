@@ -33,6 +33,22 @@ final private class EnvironmentFixtures(val c: blackbox.Context)
 
   def testPositionPrettyPrintLongImpl: c.Expr[Data] = testPositionPrettyPrintLong
   def testCompileTimeVersionsImpl: c.Expr[Data] = testCompileTimeVersions
+  def testPlatformCommonsExtractorsImpl: c.Expr[Data] = {
+    val commons: MacroCommons = this
+    val notCommons: Any = "not a MacroCommons"
+    def matches(result: Option[Any]): Data = Data(result.exists(_.asInstanceOf[AnyRef] eq commons))
+    Expr(
+      Data.map(
+        "untyped" -> matches(MacroUntypedCommonsScala2.unapply(commons)),
+        "typed" -> matches(MacroTypedCommonsScala2.unapply(commons)),
+        "commons" -> (commons match {
+          case MacroCommonsScala2(platformCommons) => Data(platformCommons.c.universe ne null)
+          case _                                   => Data(false)
+        }),
+        "not commons" -> Data(MacroCommonsScala2.unapply(notCommons).isDefined)
+      )
+    )
+  }
   def testTypedSettingsAccessorsImpl: c.Expr[Data] = testTypedSettingsAccessors
   def testMioBenchmarkFlameGraphDirImpl: c.Expr[Data] = testMioBenchmarkFlameGraphDir
   def testReportErrorTwiceImpl: c.Expr[Data] = testReportErrorTwice
@@ -58,6 +74,7 @@ object EnvironmentFixtures {
   def testLoadingExtensionsTwice: Data = macro EnvironmentFixtures.testLoadingExtensionsTwiceImpl
   def testPositionPrettyPrintLong: Data = macro EnvironmentFixtures.testPositionPrettyPrintLongImpl
   def testCompileTimeVersions: Data = macro EnvironmentFixtures.testCompileTimeVersionsImpl
+  def testPlatformCommonsExtractors: Data = macro EnvironmentFixtures.testPlatformCommonsExtractorsImpl
   def testTypedSettingsAccessors: Data = macro EnvironmentFixtures.testTypedSettingsAccessorsImpl
   def testMioBenchmarkFlameGraphDir: Data = macro EnvironmentFixtures.testMioBenchmarkFlameGraphDirImpl
   def testReportErrorTwice: Data = macro EnvironmentFixtures.testReportErrorTwiceImpl

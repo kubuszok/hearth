@@ -4,7 +4,25 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class EnvironmentFixtures(q: Quotes) extends MacroCommonsScala3(using q), EnvironmentFixturesImpl
+final private class EnvironmentFixtures(q: Quotes) extends MacroCommonsScala3(using q), EnvironmentFixturesImpl {
+
+  def testPlatformCommonsExtractors: Expr[Data] = {
+    val commons: MacroCommons = this
+    val notCommons: Any = "not a MacroCommons"
+    def matches(result: Option[Any]): Data = Data(result.exists(_.asInstanceOf[AnyRef] eq commons))
+    Expr(
+      Data.map(
+        "untyped" -> matches(MacroUntypedCommonsScala3.unapply(commons)),
+        "typed" -> matches(MacroTypedCommonsScala3.unapply(commons)),
+        "commons" -> (commons match {
+          case MacroCommonsScala3(platformCommons) => Data(platformCommons.quotes.reflect ne null)
+          case _                                   => Data(false)
+        }),
+        "not commons" -> Data(MacroCommonsScala3.unapply(notCommons).isDefined)
+      )
+    )
+  }
+}
 
 object EnvironmentFixtures {
 
@@ -54,6 +72,10 @@ object EnvironmentFixtures {
   private def testPositionPrettyPrintLongImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(
     q
   ).testPositionPrettyPrintLong
+
+  inline def testPlatformCommonsExtractors: Data = ${ testPlatformCommonsExtractorsImpl }
+  private def testPlatformCommonsExtractorsImpl(using q: Quotes): Expr[Data] =
+    new EnvironmentFixtures(q).testPlatformCommonsExtractors
 
   inline def testCompileTimeVersions: Data = ${ testCompileTimeVersionsImpl }
   private def testCompileTimeVersionsImpl(using q: Quotes): Expr[Data] = new EnvironmentFixtures(

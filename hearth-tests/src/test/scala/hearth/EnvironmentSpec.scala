@@ -327,6 +327,19 @@ final class EnvironmentSpec extends MacroSuite {
       }
     }
 
+    group("extractors: MacroUntypedCommonsScalaN, MacroTypedCommonsScalaN, MacroCommonsScalaN") {
+      import EnvironmentFixtures.testPlatformCommonsExtractors
+
+      test("should match the MacroCommons of the current platform and nothing else") {
+        testPlatformCommonsExtractors <==> Data.map(
+          "untyped" -> Data(true),
+          "typed" -> Data(true),
+          "commons" -> Data(true),
+          "not commons" -> Data(false)
+        )
+      }
+    }
+
     group("methods: Environment.typedSettings accessors, expected behavior") {
       import EnvironmentFixtures.testTypedSettingsAccessors
 
