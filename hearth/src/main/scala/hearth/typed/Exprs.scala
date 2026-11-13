@@ -143,6 +143,9 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     /** Summons an implicit / given of type `A` at the macro-expansion point, returning a [[SummoningResult]] that
       * distinguishes found / ambiguous / diverging / not-found outcomes without ever throwing.
       *
+      * On Scala 2 a diverging search is reported as [[SummoningResult.NotFound]]: the compiler's silent implicit search
+      * returns the same empty result for both, so only Scala 3 reports [[SummoningResult.Diverging]].
+      *
       * @see
       *   [[SummoningResult]] for projecting the outcome
       * @see
@@ -747,6 +750,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
 
     final case class Found[A](expr: Expr[A]) extends SummoningResult[A]
     final case class Ambiguous[A](tpe: Type[A]) extends SummoningResult[A]
+
+    /** The implicit search diverged. Only reported on Scala 3 - on Scala 2 a diverging search is [[NotFound]]. */
     final case class Diverging[A](tpe: Type[A]) extends SummoningResult[A]
     final case class NotFound[A](tpe: Type[A]) extends SummoningResult[A]
   }

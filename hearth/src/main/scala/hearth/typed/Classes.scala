@@ -1226,7 +1226,9 @@ trait Classes { this: MacroCommons =>
       *   - overriding a `final` member is rejected ([[AnonymousInstanceError.CannotOverrideFinalMethod]]),
       *   - every [[mustOverride]] and every [[diamondConflicts]] entry must have an override
       *     ([[AnonymousInstanceError.MissingRequiredOverride]] / [[AnonymousInstanceError.DiamondConflict]]),
-      *   - if there is a class parent, a `constructor` must be selected.
+      *   - if there is a class parent, a `constructor` must be selected,
+      *   - on Scala 3 an abstract `var` cannot be implemented: Scala 3 accepts only a concrete `var` there, which a
+      *     macro cannot synthesize together with its setter (on Scala 2 it is overridden with a getter and a setter).
       *
       * Override bodies receive an [[OverrideContext]]; note its `returnsThisType` gate for fluent (`this.type`)
       * methods.
@@ -1271,6 +1273,13 @@ trait Classes { this: MacroCommons =>
         case Some(_) if constructor.isEmpty =>
           errors += "Class parent requires a constructor selection but none was provided"
         case _ => ()
+      }
+
+      if (Environment.isScala3) mustOverride.filter(cm => cm.method.isVar && !cm.method.name.endsWith("_=")).foreach {
+        cm =>
+          errors += s"Abstract var `${cm.method.name}` cannot be implemented by an anonymous instance on Scala 3: " +
+            "Scala 3 lets only a concrete `var` implement an abstract `var` (a getter/setter pair is rejected), " +
+            "and a `var` cannot be synthesized with its setter by a macro"
       }
 
       val allErrors = errors.result()
