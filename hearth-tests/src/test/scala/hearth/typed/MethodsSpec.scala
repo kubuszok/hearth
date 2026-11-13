@@ -3463,7 +3463,10 @@ final class MethodsSpec extends MacroSuite {
               1,
               "scala.collection.immutable.List[scala.Int]",
               "hasDefault" -> Data(true),
-              "defaultValue" -> Data("returning scala.collection.immutable.List[scala.Int], expecting ")
+              // A default getter whose parameter type mentions a class type parameter takes that parameter as its own
+              // and has the type of the default expression (on both Scala 2 and 3); expectations describe the whole
+              // chain, so they still list the type parameter clause that defaultValue already applied.
+              "defaultValue" -> Data("returning scala.collection.immutable.Nil.type, expecting NeedsTypes[A]")
             )
           )
         )
