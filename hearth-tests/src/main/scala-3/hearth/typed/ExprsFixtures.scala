@@ -7,6 +7,20 @@ import scala.quoted.*
 
 final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q), ExprsFixturesImpl {
 
+  // A throwable escaping a macro is not reported as a failed expansion: e.g. on `NoClassDefFoundError` the compiler
+  // assumes the macro needs a class compiled in the same run, suspends the compilation unit and fails to compile it
+  // later ("already defined"). Catching it here lets a test show what escaped.
+  def testSemiEvalThrowable[A: Type](expr: Expr[A]): Expr[Data] = {
+    val thrown =
+      try {
+        val _ = expr.semiEval
+        "<nothing>"
+      } catch {
+        case throwable: Throwable => throwable.getClass.getName
+      }
+    Expr(Data.map("thrown" -> Data(thrown)))
+  }
+
   private val IntType: Type[Int] = Type.of[Int]
   def testIArrayOneWayCodecs: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
@@ -417,6 +431,10 @@ object ExprsFixtures {
   inline def testVersionCodecsRoundtrip: Data = ${ testVersionCodecsRoundtripImpl }
   private def testVersionCodecsRoundtripImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVersionCodecsRoundtrip
+
+  inline def testSemiEvalThrowable[A](inline expr: A): Data = ${ testSemiEvalThrowableImpl[A]('expr) }
+  private def testSemiEvalThrowableImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testSemiEvalThrowable[A](expr)
 
   inline def testIArrayOneWayCodecs: Data = ${ testIArrayOneWayCodecsImpl }
   private def testIArrayOneWayCodecsImpl(using q: Quotes): Expr[Data] =
