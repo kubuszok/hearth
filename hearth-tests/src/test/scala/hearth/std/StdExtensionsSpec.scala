@@ -1221,15 +1221,11 @@ final class StdExtensionsSpec extends MacroSuite {
       }
 
       test("for a collection which is not a map, IsMap explains why it skipped") {
-        testSkipReasons[List[String]] <==> Data.map(
+        StdExtensionsFixtures.testCollectionSkipReasons[List[String]] <==> Data.map(
           "IsCollection" -> Data("matched"),
           "IsMap" -> Data.map(
             "IsMap" -> Data("scala.collection.immutable.List[java.lang.String] is a collection but not a Map")
-          ),
-          "IsOption" -> Data("<skipped by multiple providers>"),
-          "IsEither" -> Data("<skipped by multiple providers>"),
-          "IsValueType" -> Data("<skipped by multiple providers>"),
-          "CtorLikes" -> Data("<skipped by multiple providers>")
+          )
         )
       }
     }

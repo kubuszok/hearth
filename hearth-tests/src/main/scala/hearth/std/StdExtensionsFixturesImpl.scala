@@ -660,26 +660,34 @@ trait StdExtensionsFixturesImpl { this: MacroCommons & StdExtensions =>
     Expr(Data.map("result" -> Data(result), "provenance" -> renderProvenance(IsMap.lastMatchProvenance)))
   }
 
-  def testSkipReasons[A: Type]: Expr[Data] = {
-    def render[B](result: ProviderResult[B]): Data = result match {
-      case ProviderResult.Matched(_)       => Data("matched")
-      case ProviderResult.Skipped(reasons) =>
-        reasons.toList match {
-          case (provider, reason) :: Nil =>
-            Data.map(provider -> Data(reason.fold(error => s"error: ${error.getMessage}", r => stripAnsi(r()))))
-          case _ => Data("<skipped by multiple providers>")
-        }
-    }
-    Expr(
-      Data.map(
-        "IsCollection" -> render(IsCollection.parse[A]),
-        "IsMap" -> render(IsMap.parse[A]),
-        "IsOption" -> render(IsOption.parse[A]),
-        "IsEither" -> render(IsEither.parse[A]),
-        "IsValueType" -> render(IsValueType.parse[A]),
-        "CtorLikes" -> render(CtorLikes.parse[A])
-      )
+  def testSkipReasons[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "IsCollection" -> renderSkipReasons(IsCollection.parse[A]),
+      "IsMap" -> renderSkipReasons(IsMap.parse[A]),
+      "IsOption" -> renderSkipReasons(IsOption.parse[A]),
+      "IsEither" -> renderSkipReasons(IsEither.parse[A]),
+      "IsValueType" -> renderSkipReasons(IsValueType.parse[A]),
+      "CtorLikes" -> renderSkipReasons(CtorLikes.parse[A])
     )
+  )
+
+  // How many providers each companion has differs between platforms and Scala versions, so tests about one companion
+  // only look at the companions involved.
+  def testCollectionSkipReasons[A: Type]: Expr[Data] = Expr(
+    Data.map(
+      "IsCollection" -> renderSkipReasons(IsCollection.parse[A]),
+      "IsMap" -> renderSkipReasons(IsMap.parse[A])
+    )
+  )
+
+  private def renderSkipReasons[B](result: ProviderResult[B]): Data = result match {
+    case ProviderResult.Matched(_)       => Data("matched")
+    case ProviderResult.Skipped(reasons) =>
+      reasons.toList match {
+        case (provider, reason) :: Nil =>
+          Data.map(provider -> Data(reason.fold(error => s"error: ${error.getMessage}", r => stripAnsi(r()))))
+        case _ => Data("<skipped by multiple providers>")
+      }
   }
 
   def testUnapplyFailures[A: Type]: Expr[Data] = {

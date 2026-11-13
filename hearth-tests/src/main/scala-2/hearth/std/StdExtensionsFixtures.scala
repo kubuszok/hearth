@@ -55,6 +55,8 @@ final private class StdExtensionsFixtures(val c: blackbox.Context)
 
   def testSkipReasonsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testSkipReasons[A]
 
+  def testCollectionSkipReasonsImpl[A: c.WeakTypeTag]: c.Expr[Data] = testCollectionSkipReasons[A]
+
   def testUnapplyFailuresImpl[A: c.WeakTypeTag]: c.Expr[Data] = testUnapplyFailures[A]
 }
 
@@ -99,6 +101,8 @@ object StdExtensionsFixtures {
   def testIsMapProvenance[A]: Data = macro StdExtensionsFixtures.testIsMapProvenanceImpl[A]
 
   def testSkipReasons[A]: Data = macro StdExtensionsFixtures.testSkipReasonsImpl[A]
+
+  def testCollectionSkipReasons[A]: Data = macro StdExtensionsFixtures.testCollectionSkipReasonsImpl[A]
 
   def testUnapplyFailures[A]: Data = macro StdExtensionsFixtures.testUnapplyFailuresImpl[A]
 }
