@@ -26,6 +26,37 @@ final class ExprsScala3Spec extends MacroSuite {
     }
   }
 
+  group("methods: Expr.semiEval on Scala 3") {
+    import ExprsFixtures.testSemiEval
+    import ExprsScala3Spec.semiEvalOfArgument
+
+    test("follows an immutable local val to its right-hand side") {
+      val local = examples.exprsedge.NamedArgsConfig(size = 3)
+      testSemiEval(local) <==> Data.map(
+        "status" -> Data("success"),
+        "value" -> Data("NamedArgsConfig(false,3)"),
+        "class" -> Data("hearth.examples.exprsedge.NamedArgsConfig")
+      )
+    }
+
+    test("follows the proxy val binding a non-inline argument of an inline method") {
+      semiEvalOfArgument(examples.exprsedge.NamedArgsConfig(flag = true)) <==> Data.map(
+        "status" -> Data("success"),
+        "value" -> Data("NamedArgsConfig(true,1)"),
+        "class" -> Data("hearth.examples.exprsedge.NamedArgsConfig")
+      )
+    }
+
+    test("does not follow a local var") {
+      var local = 1
+      local += 1
+      testSemiEval(local) <==> Data.map(
+        "status" -> Data("failure"),
+        "errors" -> Data.list(Data("Cannot semi-evaluate expression: local"))
+      )
+    }
+  }
+
   group("trait typed.Exprs (Scala 3, passQuotes/withQuotes)") {
 
     group("type LambdaBuilder scope issue") {
@@ -172,4 +203,10 @@ final class ExprsScala3Spec extends MacroSuite {
       }
     }
   }
+}
+
+object ExprsScala3Spec {
+
+  inline def semiEvalOfArgument(config: examples.exprsedge.NamedArgsConfig): Data =
+    ExprsFixtures.testSemiEval(config)
 }

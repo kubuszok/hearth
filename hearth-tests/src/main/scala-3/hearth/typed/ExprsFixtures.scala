@@ -113,6 +113,24 @@ object ExprsFixtures {
   private def testMatchCaseTraverseImpl[A: Type, B: Type](expr: Expr[A])(using q: Quotes): Expr[B] =
     new ExprsFixtures(q).testMatchCaseTraverse[A, B](expr)
 
+  inline def testValDefsOfType[A, B](inline value: A, inline widened: B): Data = ${
+    testValDefsOfTypeImpl[A, B]('value, 'widened)
+  }
+  private def testValDefsOfTypeImpl[A: Type, B: Type](value: Expr[A], widened: Expr[B])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsOfType[A, B](value, widened)
+
+  inline def testLambdasReturningType[A](inline value: A): Data = ${ testLambdasReturningTypeImpl[A]('value) }
+  private def testLambdasReturningTypeImpl[A: Type](value: Expr[A])(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdasReturningType[A](value)
+
+  inline def testVarOfLiteralTypeFromCodec: Data = ${ testVarOfLiteralTypeFromCodecImpl }
+  private def testVarOfLiteralTypeFromCodecImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testVarOfLiteralTypeFromCodec
+
+  inline def testLambdaInsideValInsideQuotedLambda: Data = ${ testLambdaInsideValInsideQuotedLambdaImpl }
+  private def testLambdaInsideValInsideQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaInsideValInsideQuotedLambda
+
   inline def testValDefsCreateAndUse: Data = ${ testValDefsCreateAndUseImpl }
   private def testValDefsCreateAndUseImpl(using q: Quotes): Expr[Data] = new ExprsFixtures(q).testValDefsCreateAndUse
 

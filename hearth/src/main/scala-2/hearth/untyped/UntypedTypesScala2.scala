@@ -137,7 +137,31 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     import platformSpecific.*
 
     override def fromTyped[A: Type]: UntypedType = c.weakTypeOf[A]
-    override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(untyped)
+    override def toTyped[A](untyped: UntypedType): Type[A] = c.WeakTypeTag(withLiteralTypes(untyped))
+
+    // Scala 2.13 has 2 kinds of constant types: a literal type (`x: "a"`) and a foldable one (the type of a
+    // `final val x = "a"`, which every reference is replaced with). Signatures read from class files and
+    // `internal.constantType` give the foldable kind, so a `var` of such type spliced into the generated code would
+    // have each of its uses (including the left side of an assignment) replaced with the constant.
+    private def withLiteralTypes(untyped: UntypedType): UntypedType =
+      if (!untyped.exists(isFoldableConstantType)) untyped
+      else {
+        val symbolTable = c.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
+        untyped.map {
+          case constantType: ConstantType if isFoldableConstantType(constantType) =>
+            symbolTable.LiteralType(constantType.value.asInstanceOf[symbolTable.Constant]).asInstanceOf[UntypedType]
+          case other => other
+        }
+      }
+
+    private def isFoldableConstantType(untyped: UntypedType): Boolean = untyped match {
+      case constantType: ConstantType =>
+        !constantType.isInstanceOf[scala.reflect.internal.Types#LiteralType] && (constantType.value.value match {
+          case _: String | _: Boolean | _: Char | _: Byte | _: Short | _: Int | _: Long | _: Float | _: Double => true
+          case _                                                                                               => false
+        })
+      case _ => false
+    }
 
     override def position(untyped: UntypedType): Option[Position] =
       positionOf(untyped.typeSymbol)

@@ -55,6 +55,12 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
     testMatchCaseTraverse[A, B](expr)
 
   def testValDefsCreateAndUseImpl: c.Expr[Data] = testValDefsCreateAndUse
+  def testLambdaInsideValInsideQuotedLambdaImpl: c.Expr[Data] = testLambdaInsideValInsideQuotedLambda
+  def testVarOfLiteralTypeFromCodecImpl: c.Expr[Data] = testVarOfLiteralTypeFromCodec
+  def testLambdasReturningTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] =
+    testLambdasReturningType[A](value)
+  def testValDefsOfTypeImpl[A: c.WeakTypeTag, B: c.WeakTypeTag](value: c.Expr[A], widened: c.Expr[B]): c.Expr[Data] =
+    testValDefsOfType[A, B](value, widened)
 
   def testValDefsInsideQuotedLambdaImpl: c.Expr[Data] = testValDefsInsideQuotedLambda
 
@@ -202,6 +208,10 @@ object ExprsFixtures {
   def testMatchCaseTraverse[A, B](expr: A): B = macro ExprsFixtures.testMatchCaseTraverseImpl[A, B]
 
   def testValDefsCreateAndUse: Data = macro ExprsFixtures.testValDefsCreateAndUseImpl
+  def testLambdaInsideValInsideQuotedLambda: Data = macro ExprsFixtures.testLambdaInsideValInsideQuotedLambdaImpl
+  def testVarOfLiteralTypeFromCodec: Data = macro ExprsFixtures.testVarOfLiteralTypeFromCodecImpl
+  def testLambdasReturningType[A](value: A): Data = macro ExprsFixtures.testLambdasReturningTypeImpl[A]
+  def testValDefsOfType[A, B](value: A, widened: B): Data = macro ExprsFixtures.testValDefsOfTypeImpl[A, B]
 
   def testValDefsInsideQuotedLambda: Data = macro ExprsFixtures.testValDefsInsideQuotedLambdaImpl
 

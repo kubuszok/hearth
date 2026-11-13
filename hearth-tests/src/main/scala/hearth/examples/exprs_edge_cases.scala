@@ -64,3 +64,11 @@ object RuntimeShow {
     case other => other.toString
   }
 }
+
+final case class NamedArgsConfig(flag: Boolean = false, size: Int = 1)
+
+object SemiEvalVars {
+  @volatile var mutable: Int = 1
+}
+
+final case class LiteralTypedFields(s: "VVV", i: 2, b: true)

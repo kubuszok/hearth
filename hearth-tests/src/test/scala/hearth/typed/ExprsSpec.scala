@@ -390,23 +390,55 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
-        test("should fail with Left for a reference to a runtime-only local value") {
-          @scala.annotation.nowarn // the val is only used inside the macro-inspected tree
-          def run = {
-            val runtimeValue = "only known at runtime"
+        test("should evaluate a call with named and default arguments") {
+          testSemiEval(examples.exprsedge.NamedArgsConfig(size = 2)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("NamedArgsConfig(false,2)"),
+            "class" -> Data("hearth.examples.exprsedge.NamedArgsConfig")
+          )
+        }
+
+        test("should refuse a var, whose value at compile time is not its value at runtime") {
+          testSemiEval(examples.exprsedge.SemiEvalVars.mutable + 1) <==> Data.map(
+            "status" -> Data("failure"),
+            "errors" -> Data.list(
+              Data(
+                "Cannot semi-evaluate mutable: it is a var, and its value at compile time is not its value at runtime"
+              )
+            )
+          )
+        }
+
+        test("should refuse members of classes compiled together with the macro expansion") {
+          testSemiEval(SemiEvalSameModule.answer) <==> Data.map(
+            "status" -> Data("failure"),
+            "errors" -> Data.list(
+              Data(
+                "Cannot semi-evaluate answer: hearth.typed.SemiEvalSameModule is compiled together with the code " +
+                  "expanding the macro, so it cannot be loaded at compile time"
+              )
+            )
+          )
+        }
+
+        test("should refuse a lambda whose body it cannot evaluate when the function is applied") {
+          testSemiEval((s: String) => s match { case "x" => "X"; case other => other }) <==> Data.map(
+            "status" -> Data("failure"),
+            "errors" -> Data.list(Data("Cannot semi-evaluate a lambda whose body uses a match"))
+          )
+        }
+
+        test("should fail with Left for a reference to a runtime-only value") {
+          def run(runtimeValue: String) =
             testSemiEval(runtimeValue) <==> Data.map(
               "status" -> Data("failure"),
               "errors" -> Data.list(Data("Cannot semi-evaluate expression: runtimeValue"))
             )
-          }
-          run
+          run("only known at runtime")
         }
 
         test("should aggregate multiple independent errors in a NonEmptyVector") {
-          @scala.annotation.nowarn // the vals are only used inside the macro-inspected tree
-          def run = {
-            val first = "first runtime value"
-            val second = "second runtime value"
+          def run(first: String, second: String) =
             testSemiEval(List(first, second)) <==> Data.map(
               "status" -> Data("failure"),
               "errors" -> Data.list(
@@ -414,8 +446,7 @@ final class ExprsSpec extends MacroSuite {
                 Data("Cannot semi-evaluate expression: second")
               )
             )
-          }
-          run
+          run("first runtime value", "second runtime value")
         }
       }
 
@@ -587,6 +618,35 @@ final class ExprsSpec extends MacroSuite {
           "lazy" -> Data((1 + 2) * 100),
           "def" -> Data((1 + 3) * 1000)
         )
+      }
+
+      test("lambdas from Expr.quote and LambdaBuilder keep a literal result type") {
+        import ExprsFixtures.testLambdasReturningType
+
+        testLambdasReturningType[2](2) <==> Data.map("quoted" -> Data("2"), "built" -> Data("2"))
+        testLambdasReturningType["VVV"]("VVV") <==> Data.map("quoted" -> Data("VVV"), "built" -> Data("VVV"))
+      }
+
+      test("ValDefs.createVar accepts a literal type created by a TypeCodec") {
+        import ExprsFixtures.testVarOfLiteralTypeFromCodec
+
+        testVarOfLiteralTypeFromCodec <==> Data(2)
+      }
+
+      test("methods ValDefs.{createVal, createVar, createLazy, createDef} should accept literal types") {
+        import ExprsFixtures.testValDefsOfType
+
+        val expected = Data.map("val" -> Data("2"), "var" -> Data("2"), "lazy" -> Data("2"), "def" -> Data("2"))
+        def runtimeInt(): Int = 2
+        def runtimeString(): String = "2"
+        testValDefsOfType[2, Int](2, runtimeInt()) <==> expected
+        testValDefsOfType["2", String]("2", runtimeString()) <==> expected
+      }
+
+      test("a LambdaBuilder lambda spliced into a local val of a quoted lambda is owned by that val") {
+        import ExprsFixtures.testLambdaInsideValInsideQuotedLambda
+
+        testLambdaInsideValInsideQuotedLambda <==> Data.map("result" -> Data("VALUE 21"))
       }
 
       test("ValDefs.createVal inside a native quoted lambda owns the fresh val by the lambda (Scala 3 owner hygiene)") {
@@ -1341,4 +1401,8 @@ final class ExprsSpec extends MacroSuite {
       }
     }
   }
+}
+
+object SemiEvalSameModule {
+  val answer: Int = 42
 }

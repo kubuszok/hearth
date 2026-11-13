@@ -579,7 +579,30 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       }
     // Qualified while the tree is still typed, so that they survive convert's print-then-reparse at a
     // separately-compiled expansion site.
-    val quasiquote = convert(ctx)(qualifyStaticModuleRefs(expr.tree))
+    val converted = convert(ctx)(qualifyStaticModuleRefs(expr.tree))
+
+    // Scala 2 infers a function literal's result type from its body with literal types widened (`"a"` becomes
+    // `String`), so a quoted lambda returning a literal type would not conform to its own type. Whether the result is
+    // a literal (or other singleton) type is only known once the type parameters of the quote are known.
+    def isFunctionLiteral(tree: Tree): Boolean = tree match {
+      case _: Function       => true
+      case Typed(inner, _)   => isFunctionLiteral(inner)
+      case Block(Nil, inner) => isFunctionLiteral(inner)
+      case _                 => false
+    }
+    val quasiquote =
+      if (!isFunctionLiteral(expr.tree)) converted
+      else {
+        val lambda = freshName("lambda")
+        val lambdaType = freshName("lambdaType")
+        q"""{
+          val $lambda = $converted
+          val $lambdaType = $wtt.asInstanceOf[$ctx.WeakTypeTag[$A]].tpe
+          if ($lambdaType.typeArgs.lastOption.exists(result => !(result =:= result.widen)))
+            $ctx.universe.Typed($lambda, $ctx.universe.TypeTree($lambdaType))
+          else $lambda
+        }"""
+      }
 
     val quasiquoteFresh = freshName("Quasiquote")
     val unchecked = q"""

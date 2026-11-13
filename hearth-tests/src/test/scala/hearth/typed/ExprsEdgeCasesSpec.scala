@@ -444,9 +444,8 @@ final class ExprsEdgeCasesSpec extends MacroSuite {
       }
 
       test("ExprCodec.derived fromExpr returns None for a value only known at runtime") {
-        val runtimeConfig = List(ServerConfig("host", 1)).head
-        val _ = runtimeConfig
-        testExprCodecDerivedAtRuntime(runtimeConfig) <==> Data.map("decoded" -> Data("<none>"))
+        def decode(runtimeConfig: ServerConfig): Data = testExprCodecDerivedAtRuntime(runtimeConfig)
+        decode(ServerConfig("host", 1)) <==> Data.map("decoded" -> Data("<none>"))
       }
     }
 

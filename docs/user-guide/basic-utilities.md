@@ -269,6 +269,22 @@ These examples show how to write Scala-specific macros with Hearth.
     }
     ```
 
+!!! tip "Platform-specific code in shared logic"
+
+    Shared code (e.g. a macro extension) that only has a `MacroCommons` can still use the platform's API when it runs on
+    that platform: `MacroCommonsScala2`, `MacroTypedCommonsScala2`, `MacroUntypedCommonsScala2` and their Scala 3
+    counterparts have an extractor that matches the implementation of their platform:
+
+    ```scala
+    commons match {
+      case MacroCommonsScala3(platformCommons) => // platformCommons.quotes is available here
+      case _                                   => // not on Scala 3
+    }
+    ```
+
+    The Scala 2 extractors exist only in the Scala 2 build and the Scala 3 ones only in the Scala 3 build, so the
+    match belongs in a platform-specific source directory.
+
 ## Library conventions
 
 Inside a shared-logic trait (`MacroCommons`) we work with abstract types and abstract methods:
@@ -818,6 +834,11 @@ It handles:
 - **Constructor calls** — `new Foo(arg1, arg2)` where all arguments are also semi-evaluable
 - **Method calls** — `obj.method(args)` where the receiver and all arguments are semi-evaluable, including varargs and overloaded methods
 - **Blocks with val definitions** — `{ val x = 1; x + 2 }`, including compiler-generated blocks from implicit resolution
+- **Named and default arguments** — `MyConfig(enabled = true)`
+- **Local vals defined outside the evaluated tree** (Scala 3 only) — a reference to an immutable local `val` is replaced
+  with its right-hand side. This includes the proxy vals that bind the non-`inline` arguments of an `inline` method
+  (so `derived[A](using MyConfig(enabled = true))` is evaluable when `derived` is `inline`). Scala 2 macros cannot
+  read a local val's right-hand side, so there such a reference fails
 - **Lambdas** (any arity) — `(x: Int) => x + 1`, including eta-expanded method references; uses `FunctionN` for arity 0–22 and `FunctionXXL` beyond that on Scala 3
 - **Eta-expanded methods as function arguments** — `config.withMapper(MyUtils.transform)` where a `def` is auto-converted to a function value
 - **Nested combinations** of the above — `Some(List(1, 2, 3).size)`, `2 + "foo".length`, etc.
@@ -827,8 +848,14 @@ It cannot handle:
 
 - **Definitions** — `def`, `var`, `lazy val`, class/trait/object definitions inside the evaluated tree
 - **Pattern matching** — `match` expressions
+- **Lambdas whose body it cannot evaluate** — a lambda is only run when the function is applied, so instead of
+  returning a function that would fail later, `semiEval` fails for a lambda using `match`, `if`, loops, `try`,
+  `return`, assignments or local definitions
 - **Lambdas with arity > 22** on Scala 2 (Scala 3 supports any arity via `FunctionXXL`)
-- **Types not on the classpath** — modules or classes only defined in the currently-compiled module
+- **`var`s** — the value read at compile time is not the value the `var` would have at runtime
+- **Members of the module being compiled** — classes and objects compiled together with the code expanding the macro
+  are refused, even when an earlier incremental compilation left their class files behind, so that a clean and an
+  incremental build give the same result
 
 When evaluation fails, it returns `Left` with all the reasons (a `NonEmptyVector[String]`).
 
