@@ -8,27 +8,18 @@
 
 The first Scala macros' standard library.
 
-Hearth gives macro authors robust, well-tested utilities that handle the corner cases you would otherwise learn about
-only from your users' bug reports - "this obviously should work, but it doesn't". It works with Scala 3 macros,
-Scala 2.13 macros, and libraries that need one macro for both.
+Hearth helps you write robust, fast-to-compile, easy-to-maintain macros - for Scala 3, for Scala 2.13, or for both.
 
-Goals:
-
- - **robust building blocks instead of hand-written ASTs** - work with `Type`s, `Expr`s, `Method`s, case classes,
-   enums and other well-defined APIs, instead of reverse-engineering compiler trees and building them from scratch
- - **macros that are easy to get right** - error aggregation and logging with `MIO`, readable error messages that let
-   your users fix their code in one go, fast compilation and well-performing generated code
- - **native API in platform-specific code** - in Scala 2-only and Scala 3-only code (or a branch of shared code that
-   matched `MacroCommonsScala2`/`MacroCommonsScala3`) Hearth's types are the compiler's own (`c.WeakTypeTag`/`c.Expr`,
-   `scala.quoted.Type`/`Expr`), so its API can be used where Hearth doesn't cover a case
- - **integrate a library once** - with macro extensions discovered from the classpath and standard interfaces
-   (`IsCollection`, `IsOption`, `IsValueType`, ...), one integration module (e.g. for Cats collections, Iron, Refined
-   or newtypes) makes every Hearth-based macro that uses them support those types, with no extra imports
- - **any macro system** - Scala 3 macros with `scala.quoted`, Scala 2.13 macros with `c.Expr`/`c.WeakTypeTag`, or one
-   cross-compiled macro for both (with Cross Quotes)
+ - **corner cases already handled** - generic, opaque and singleton types, named tuples, enums, default values,
+   recursive types - tested on Scala 2.13 and Scala 3, on JVM, Scala.js and Scala Native
+ - **building blocks instead of compiler trees** - types, expressions, methods, case classes and enums, with error
+   aggregation and logging built in
+ - **integrate a library once** - a module on the classpath (e.g. for Cats, Iron or Refined) is picked up by every
+   Hearth-based macro that asks Hearth about collections, options or wrapper types, with no extra imports
+ - **single-version or cross-compiled** - Scala 3-only, Scala 2-only, or one macro for both; in single-version code the
+   compiler's own API stays available
  - **general purpose** - type class derivation, optics, dependency injection, mocking, parsers and more
- - exhaustive documentation lowering the barrier of entry
- - no dependencies on additional ecosystems (some FP-utilities are already provided!)
+ - exhaustive documentation and no dependencies on other ecosystems
 
 ## Call for Feedback
 
