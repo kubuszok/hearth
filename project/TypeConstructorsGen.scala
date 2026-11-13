@@ -457,6 +457,23 @@ object TypeConstructorsGen {
     sb ++= s"            (quotes.reflect.defn.NothingClass, quotes.reflect.defn.NullClass)\n"
     sb ++= s"          }\n"
 
+    // The prefix of a constructor that is a member of a class (`first.Inner` for `object first extends Outer`): the
+    // head symbol is shared by every prefix, so `second.Inner[Int]` would pass the fast path below. A member of an
+    // object or a package is static and is often reached through an alias with another prefix, so it is not compared.
+    sb ++= s"          private lazy val fastPathHktClassMemberPrefix: AnyRef = {\n"
+    sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+    sb ++= s"            import quotes.reflect.*\n"
+    sb ++= s"            val owner = TypeRepr.of[HKT].typeSymbol.owner\n"
+    sb ++= s"            val isClassMember =\n"
+    sb ++= s"              !owner.isNoSymbol && owner.isClassDef && !owner.flags.is(Flags.Module) && !owner.flags.is(Flags.Package)\n"
+    sb ++= s"            TypeRepr.of[HKT] match {\n"
+    sb ++= s"              case TypeRef(prefix, _) if isClassMember => prefix.asInstanceOf[AnyRef]\n"
+    // A constructor passed as `first.Inner` arrives eta-expanded: `[A] =>> first.Inner[A]`.
+    sb ++= s"              case TypeLambda(_, _, AppliedType(TypeRef(prefix, _), _)) if isClassMember => prefix.asInstanceOf[AnyRef]\n"
+    sb ++= s"              case _ => null\n"
+    sb ++= s"            }\n"
+    sb ++= s"          }\n"
+
     sb ++= s"          def asUntyped: UntypedType = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
     sb ++= s"            quotes.reflect.TypeRepr.of[HKT].asInstanceOf[UntypedType]\n"
@@ -511,7 +528,14 @@ object TypeConstructorsGen {
     sb ++= s"                  val raw = TypeRepr.of[A](using A.asInstanceOf[scala.quoted.Type[A]]).dealias\n"
     sb ++= s"                  if (raw.isSingleton) raw.widen.dealias else raw\n"
     sb ++= s"                }\n"
+    // `Nothing` and `Null` conform to every `HKT[...]`, so the quote pattern below would match them with `Nothing` as
+    // every argument - but they are not applications of the constructor.
+    sb ++= s"                if (aRepr.typeSymbol == fastPathBottomSymbols._1 || aRepr.typeSymbol == fastPathBottomSymbols._2)\n"
+    sb ++= s"                  return None\n"
     sb ++= s"                if (aRepr.typeSymbol == fastPathHktSymbol) aRepr match {\n"
+    sb ++= s"                  case AppliedType(TypeRef(prefix, _), _)\n"
+    sb ++= s"                      if fastPathHktClassMemberPrefix != null && !(prefix =:= fastPathHktClassMemberPrefix.asInstanceOf[TypeRepr]) =>\n"
+    sb ++= s"                    return None\n"
     sb ++= s"                  case AppliedType(_, List($fastPathArgs)) if $fastPathGuard =>\n"
     sb ++= s"                    return Some(($fastPathSome))\n"
     sb ++= s"                  case _ => ()\n"
