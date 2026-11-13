@@ -874,7 +874,7 @@ trait Methods { this: MacroCommons =>
                 totalParameters = totalParameters,
                 knownReturning0 = returnType,
                 parameters = params,
-                next = { newArgs =>
+                nextWithArgumentTypes = { (newArgs, argumentTypes) =>
                   val nextAccArgs = accArgs ++ newArgs
                   val paramOrder = params.flatMap(_.keys.toList)
                   val nextState = appliedState.copy(
@@ -892,10 +892,13 @@ trait Methods { this: MacroCommons =>
                   // compiler error instead of `build()` returning a `Left`.
                   val wrongTypes = params.flatten.flatMap { case (name, param) =>
                     val expected = param.byNameUnderlying.getOrElse(param.tpe)
-                    newArgs.get(name).map(UntypedExpr.as_??(_).Underlying).collect {
-                      case actual if !(actual <:< expected.Underlying) =>
-                        s"Argument for parameter `$name` of ${asUntyped.name} has type ${actual.prettyPrint}, expected ${expected.Underlying.prettyPrint}"
-                    }
+                    argumentTypes
+                      .get(name)
+                      .orElse(newArgs.get(name).map(UntypedExpr.as_??(_).Underlying.as_??))
+                      .collect {
+                        case actual if !(actual.Underlying <:< expected.Underlying) =>
+                          s"Argument for parameter `$name` of ${asUntyped.name} has type ${actual.Underlying.prettyPrint}, expected ${expected.Underlying.prettyPrint}"
+                      }
                   }
                   buildFromStep(
                     nextExpectations,
@@ -989,16 +992,45 @@ trait Methods { this: MacroCommons =>
         val totalParameters: Parameters,
         private[Methods] val knownReturning0: Option[() => ??],
         override val parameters: Parameters,
-        private val next: UntypedArguments => Method
+        // The types of the arguments are passed on their own because an argument's tree does not always carry its type
+        // (e.g. a literal built on Scala 2 is untyped until the compiler typechecks the expansion).
+        private val nextWithArgumentTypes: (UntypedArguments, Map[String, ??]) => Method
     )(
         private[Methods] val instanceEvidence: ??,
         private[hearth] val appliedState: AppliedState
     ) extends Method {
+
+      // Keeps the constructor signature of the previous releases.
+      private[Methods] def this(
+          asUntyped: UntypedMethod,
+          untypedInstanceType: UntypedType,
+          expectations: List[MethodExpectation],
+          totalParameters: Parameters,
+          knownReturning0: Option[() => ??],
+          parameters: Parameters,
+          next: UntypedArguments => Method
+      )(instanceEvidence: ??, appliedState: AppliedState) =
+        this(
+          asUntyped,
+          untypedInstanceType,
+          expectations,
+          totalParameters,
+          knownReturning0,
+          parameters,
+          { (arguments: UntypedArguments, _: Map[String, ??]) =>
+            next(arguments)
+          }
+        )(instanceEvidence, appliedState)
+
       type Instance = instanceEvidence.Underlying
       @ImportedCrossTypeImplicit
       implicit val Instance: Type[Instance] = instanceEvidence.Underlying
       lazy val knownReturning: Option[??] = Method.forceKnownReturning(knownReturning0)
-      def apply(arguments: Arguments): Method = next(UntypedArguments.fromTyped(arguments))
+      def apply(arguments: Arguments): Method =
+        nextWithArgumentTypes(
+          UntypedArguments.fromTyped(arguments),
+          arguments.map { case (name, argument) => name -> argument.Underlying.as_?? }
+        )
     }
 
     /** Terminal step of the builder chain. All arguments have been accumulated; call [[build]] to validate them and
