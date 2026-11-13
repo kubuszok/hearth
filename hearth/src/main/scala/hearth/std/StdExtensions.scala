@@ -369,6 +369,24 @@ trait StdExtensions { this: MacroCommons =>
       ): CtorLikeOf[Input, Output]
     }
 
+    // A generic method with its type arguments applied has no `totalParameters` that `isUnary` could count.
+    private def takesOneArgument(method: Method): Boolean = method.isUnary || (method match {
+      case av: Method.ApplyValues =>
+        av.parameters.flatten.sizeIs == 1 &&
+        av.expectations.count(_.isInstanceOf[MethodExpectation.NeedsValues]) == 1
+      case _ => false
+    })
+
+    // The companion of a generic opaque type usually declares its smart constructor with the type's own type
+    // parameters (`def apply[A](value: A): Wrapper[A]`), and an opaque type gives us nothing else to infer them from.
+    // The check of the result type rejects a wrong guess.
+    private def applyTypeArgumentsOf[Output: Type](method: Method.ApplyTypes): Option[Method] = {
+      val typeParams = method.typeParams.flatten
+      val typeArgs = Type.typeArguments[Output]
+      if (typeParams.isEmpty || typeParams.sizeCompare(typeArgs) != 0) None
+      else scala.util.Try(method(typeParams.zip(typeArgs).toMap)).toOption
+    }
+
     /** Extracts from type `Output` all possible smart constructors that can be used to build an instance of `Output`
       * from an instance of `Input`.
       *
@@ -391,15 +409,18 @@ trait StdExtensions { this: MacroCommons =>
 
       // Order does not matter here (we collect the ones usable as smart constructors), so use the cheaper unsorted
       // variant that skips source-position resolution.
-      val noInstanceMethods: List[Method] = Type[Output].unsortedMethods.filter {
-        case _: Method.OnInstance => false
-        case _                    => true
+      val isOpaque = Type[Output].isOpaqueType
+      val noInstanceMethods: List[Method] = Type[Output].unsortedMethods.flatMap {
+        case _: Method.OnInstance              => None
+        case at: Method.ApplyTypes if isOpaque => applyTypeArgumentsOf[Output](at)
+        case other                             => Some(other)
       }
 
       (plainCtors ++ noInstanceMethods).collect {
-        case method if method.isUnary && method.isAvailable(AtCallSite) && method.knownReturning.exists { rt =>
-              import rt.Underlying as R
-              Type[R] <:< Type[Result]
+        case method if takesOneArgument(method) && method.isAvailable(AtCallSite) && method.knownReturning.exists {
+              rt =>
+                import rt.Underlying as R
+                Type[R] <:< Type[Result]
             } =>
           val (paramName, param) = method.parameters.flatten.head
           import param.tpe.Underlying as Input
