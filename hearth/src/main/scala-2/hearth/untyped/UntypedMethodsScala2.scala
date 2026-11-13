@@ -563,7 +563,14 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
           case PolyType(_, res)        => collect(res)
           case _                       => Map.empty
         }
-        collect(untyped.symbol.typeSignatureIn(instanceTpe))
+        // A companion's member listed among the class's methods (`andThen` of a case class companion extending
+        // `Function1`) has to be seen from the companion, or its owner's type parameters stay unresolved.
+        val signatureOwner = untyped.invocation match {
+          case Invocation.OnModule(_) if !instanceTpe.baseClasses.contains(untyped.symbol.owner) =>
+            instanceTpe.companionObject.map(_._1).getOrElse(instanceTpe)
+          case _ => instanceTpe
+        }
+        collect(untyped.symbol.typeSignatureIn(signatureOwner))
       }
       def resolveTypeParamClauseValues(up: UntypedParameters, typeArgs: UntypedTypeArguments): Parameters = {
         // Unapplied method type parameters are kept abstract as a BARE `NoPrefix` ref: `internal.typeRef(NoPrefix, ...)`
@@ -607,7 +614,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
       val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
       val totalParams: Parameters =
-        if (hasUnresolvedTypeParams) List.empty
+        if (hasUnresolvedTypeParams)
+          // Resolving the parameters against the instance type cannot substitute the method's own type parameters; the
+          // expectations already have the parameters with those type parameters left abstract.
+          typedExpectations.flatMap {
+            case MethodExpectation.NeedsValues(parameters) => parameters
+            case _                                         => Nil
+          }
         else UntypedParameters.toTypedWith[Instance](untyped.parameters, () => sharedTypesByParamName)
 
       // Option-ness is decided by cheap flags; the expensive `typeSignatureIn` resolution inside `Some` is deferred

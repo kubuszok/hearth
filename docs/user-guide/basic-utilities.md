@@ -2159,7 +2159,9 @@ Every `Method` carries:
 
  * `expectations: List[MethodExpectation]` — the pre-parsed step structure showing what each step needs
  * `knownReturning: Option[??]` — the terminal return type (if known without applying type args first)
- * `totalParameters: Parameters` — all value parameters across the full chain
+ * `totalParameters: Parameters` — all value parameters across the full chain (for a generic method their types
+   mention the method's own type parameters, e.g. `a: A`; the `ApplyValues` step after `ApplyTypes` has them
+   substituted)
  * `toString` — renders the full method signature: `TypeName: def methodName[TypeParams](params): ReturnType`
 
 `MethodExpectation` is a sealed trait with three cases:

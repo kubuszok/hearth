@@ -4134,8 +4134,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       case _                                              => false
     })
 
+  // A generic method's parameters still mention its own type parameters (`elems: A*`), so its value arguments are read
+  // with the types of the applied call instead (`dstrValueArgsByFunctionType`).
   private def dstrParameterClauses(method: Method): List[List[Parameter]] =
-    method.totalParameters.map(_.values.toList)
+    if (method.asUntyped.hasTypeParameters && !method.isConstructor) Nil
+    else method.totalParameters.map(_.values.toList)
 
   private def dstrResolveMethod(qualTpe: c.Type, methodSym: Symbol): Option[Method] = {
     val instanceTpe: UntypedType = qualTpe.widen
