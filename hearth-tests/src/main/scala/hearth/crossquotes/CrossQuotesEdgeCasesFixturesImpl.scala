@@ -159,6 +159,27 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
     )
   }
 
+  def testCtorOfAliasInheritedByPackageObject: Expr[Data] = {
+    import hearth.examples.newtypealiases.Newtype
+
+    val AliasCtor = Type.Ctor1.of[Newtype]
+    val NewtypeCtor = Type.Ctor1.of[Newtype.Type]
+
+    Expr(
+      Data.map(
+        "alias constructor on the applied alias" -> printedOrNoMatch(
+          AliasCtor.unapply(Type.of[Newtype[Int]]).map(_.Underlying.plainPrint)
+        ),
+        "alias constructor on the applied newtype" -> printedOrNoMatch(
+          AliasCtor.unapply(Type.of[Newtype.Type[Int]]).map(_.Underlying.plainPrint)
+        ),
+        "newtype constructor on the applied alias" -> printedOrNoMatch(
+          NewtypeCtor.unapply(Type.of[Newtype[Int]]).map(_.Underlying.plainPrint)
+        )
+      )
+    )
+  }
+
   def testBoundedCtorClaims: Expr[Data] = {
     import hearth.examples.crossquotesedge.*
 
