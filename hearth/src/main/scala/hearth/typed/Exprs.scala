@@ -2667,6 +2667,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     ) extends DestructuredExpr {
       def toUntypedExpr: UntypedExpr = rebuild()
       def plainPrint: String = elements.map(_.plainPrint).mkString(", ")
+      // The rebuilt `Seq(elements*)` is synthesized, so it has no position of its own.
+      override def position: Option[Position] = elements.iterator.flatMap(_.position).nextOption()
     }
 
     /** A sub-expression that could not be destructured into a semantic node.

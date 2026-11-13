@@ -288,17 +288,17 @@ trait UntypedMethods { this: MacroCommons =>
     final private[hearth] def sortMethodsBy[M](methods: IterableOnce[M])(toUntyped: M => UntypedMethod): List[M] = {
       import scala.collection.mutable.ListBuffer
       val ctorArgs = ListBuffer.empty[(Int, M)]
-      val declared = ListBuffer.empty[(Position, M)]
+      val declared = ListBuffer.empty[((Boolean, Option[Position], Int), M)]
       val others = ListBuffer.empty[(String, M)]
       methods.iterator.foreach { m =>
         val u = toUntyped(m)
         if (u.isConstructorArgument) ctorArgs += ((u.constructorArgumentIndex.getOrElse(Int.MaxValue), m))
-        else if (u.isDeclared)
-          u.position match {
-            case Some(position) => declared += ((position, m))
-            case None           => others += ((u.name, m))
-          }
-        else others += ((u.name, m))
+        else if (u.isDeclared) {
+          // Members of a type compiled in another run have no positions on Scala 2, and on Scala 3 they can share one,
+          // so the order of the owner's declarations (which is the source order) decides then.
+          val position = u.position
+          declared += (((position.isEmpty, position, declarationIndex(u)), m))
+        } else others += ((u.name, m))
       }
 
       val result = ListBuffer.empty[M]
@@ -307,6 +307,9 @@ trait UntypedMethods { this: MacroCommons =>
       others.sortBy(_._1)(hearth.fp.NaturalLanguageOrdering.caseInsensitive).foreach { case (_, m) => result += m }
       result.toList
     }
+
+    /** Index of the method among its owner's declarations, in source order. */
+    protected def declarationIndex(method: UntypedMethod): Int = Int.MaxValue
 
     // Defaults methods' positions are 1-indexed. They are named `methodName$default$indexOfParameter`.
 

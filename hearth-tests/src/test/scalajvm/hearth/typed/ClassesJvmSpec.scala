@@ -211,11 +211,11 @@ final class ClassesJvmSpec extends MacroSuite {
              |{
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass();
              |  {
-             |    examplejavaclass.setBoolean(true);
+             |    examplejavaclass.setString("x$1");
              |    {
              |      examplejavaclass.setInt(0);
              |      {
-             |        examplejavaclass.setString("x$1");
+             |        examplejavaclass.setBoolean(true);
              |        examplejavaclass
              |      }
              |    }
@@ -225,11 +225,11 @@ final class ClassesJvmSpec extends MacroSuite {
              |{
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass();
              |  {
-             |    examplejavaclass.setBoolean(true);
+             |    examplejavaclass.setString("x$1");
              |    {
              |      examplejavaclass.setInt(0);
              |      {
-             |        examplejavaclass.setString("x$1");
+             |        examplejavaclass.setBoolean(true);
              |        examplejavaclass
              |      }
              |    }
@@ -239,17 +239,17 @@ final class ClassesJvmSpec extends MacroSuite {
            """sequential:
              |{
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
-             |  examplejavaclass.setBoolean(true)
-             |  examplejavaclass.setInt(0)
              |  examplejavaclass.setString("x$0")
+             |  examplejavaclass.setInt(0)
+             |  examplejavaclass.setBoolean(true)
              |  examplejavaclass
              |}
              |parallel:
              |{
              |  val examplejavaclass: hearth.examples.classes.ExampleJavaClass = new hearth.examples.classes.ExampleJavaClass()
-             |  examplejavaclass.setBoolean(true)
-             |  examplejavaclass.setInt(0)
              |  examplejavaclass.setString("x$0")
+             |  examplejavaclass.setInt(0)
+             |  examplejavaclass.setBoolean(true)
              |  examplejavaclass
              |}""".stripMargin)
     }
