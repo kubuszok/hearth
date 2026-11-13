@@ -94,6 +94,10 @@ object StdExtensionsFixtures {
   private def testSkipReasonsImpl[A: Type](using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testSkipReasons[A]
 
+  inline def testCollectionSkipReasons[A]: Data = ${ testCollectionSkipReasonsImpl[A] }
+  private def testCollectionSkipReasonsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new StdExtensionsFixtures(q).testCollectionSkipReasons[A]
+
   inline def testUnapplyFailures[A]: Data = ${ testUnapplyFailuresImpl[A] }
   private def testUnapplyFailuresImpl[A: Type](using q: Quotes): Expr[Data] =
     new StdExtensionsFixtures(q).testUnapplyFailures[A]
