@@ -178,13 +178,13 @@ object CrossQuotesMacrosGen {
     sb ++= s"        val A0 = A.asInstanceOf[$$ctx.WeakTypeTag[$$${ArityGen.paramName(0)}]].tpe\n"
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
-    sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
+    sb ++= s"          case TypeRef(pre, _, _root_.scala.List($tpList)) if prefixMatches(pre) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     // A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
     // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
     // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
     // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
-    sb ++= s"          case ExistentialType(_, TypeRef(_, _, _root_.scala.List($tpList))) =>\n"
+    sb ++= s"          case ExistentialType(_, TypeRef(pre, _, _root_.scala.List($tpList))) if prefixMatches(pre) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
@@ -195,7 +195,17 @@ object CrossQuotesMacrosGen {
     sb ++= s"        }\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
-    sb ++= s"      List(matchResultDef, unapplyDef)\n"
+    // `baseType` finds the constructor by its symbol alone, so `first.Inner[Int]` would match a constructor of
+    // `second.Inner` - the prefix has to be compared when the constructor is a member of a class. A member of an
+    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`).
+    sb ++= s"      val prefixMatchesDef = q${tq}\n"
+    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = HKT.typeConstructor match {\n"
+    sb ++= s"        case TypeRef(hktPre, sym, _) if sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass =>\n"
+    sb ++= s"          pre =:= hktPre\n"
+    sb ++= s"        case _ => true\n"
+    sb ++= s"      }\n"
+    sb ++= s"      $tq\n"
+    sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"
     sb ++= s"    }\n"
     sb ++= s"\n"
 
@@ -308,13 +318,13 @@ object CrossQuotesMacrosGen {
     sb ++= s"        val A0 = A.asInstanceOf[$$ctx.WeakTypeTag[$$${ArityGen.paramName(0)}]].tpe\n"
     sb ++= s"        A0.dealias.widen.baseType(HKT.typeSymbol) match {\n"
     val tpList = (1 to n).map(i => s"tp$i").mkString(", ")
-    sb ++= s"          case TypeRef(_, _, _root_.scala.List($tpList)) =>\n"
+    sb ++= s"          case TypeRef(pre, _, _root_.scala.List($tpList)) if prefixMatches(pre) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     // A WILDCARD type argument (`HKT[?]`, e.g. a `SomeFlag[?]` DSL member) makes `baseType` return a
     // PACKED `ExistentialType(_, TypeRef(...))` instead of a bare `TypeRef`, so the case above misses. Unwrap it here
     // (still `baseType`-symbol-based, so prefix-representation-independent) rather than falling through to the
     // structural-`==` fallback, which additionally misses when the constructor's prefix is captured via an alias.
-    sb ++= s"          case ExistentialType(_, TypeRef(_, _, _root_.scala.List($tpList))) =>\n"
+    sb ++= s"          case ExistentialType(_, TypeRef(pre, _, _root_.scala.List($tpList))) if prefixMatches(pre) =>\n"
     sb ++= s"            matchResult($tpList)\n"
     sb ++= s"          case _ =>\n"
     sb ++= s"            if (A0.typeConstructor == HKT && A0.typeArgs.size == $n) {\n"
@@ -325,7 +335,17 @@ object CrossQuotesMacrosGen {
     sb ++= s"        }\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
-    sb ++= s"      List(matchResultDef, unapplyDef)\n"
+    // `baseType` finds the constructor by its symbol alone, so `first.Inner[Int]` would match a constructor of
+    // `second.Inner` - the prefix has to be compared when the constructor is a member of a class. A member of an
+    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`).
+    sb ++= s"      val prefixMatchesDef = q${tq}\n"
+    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = HKT.typeConstructor match {\n"
+    sb ++= s"        case TypeRef(hktPre, sym, _) if sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass =>\n"
+    sb ++= s"          pre =:= hktPre\n"
+    sb ++= s"        case _ => true\n"
+    sb ++= s"      }\n"
+    sb ++= s"      $tq\n"
+    sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"
     sb ++= s"    }\n"
     sb ++= s"\n"
 
