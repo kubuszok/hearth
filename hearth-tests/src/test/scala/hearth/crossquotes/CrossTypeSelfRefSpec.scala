@@ -28,5 +28,21 @@ final class CrossTypeSelfRefSpec extends MacroSuite {
         "appliedCtor" -> Data("scala.Option[scala.Int]")
       )
     }
+
+    // Known gap (Scala 2): in an `object` nested in the macro bundle the implicit search of `Type.of` still resolves to
+    // the val being defined, so the val is initialized with itself (`null`). Remove `knownGapOnScala2_13` once fixed.
+    test(
+      knownGapOnScala2_13(
+        "implicit val A: Type[A] = Type.of[A] in an object of the macro bundle should materialize directly, not resolve to itself"
+      )
+    ) {
+      CrossTypeSelfRefFixtures.testSelfReferentialImplicitTypeInObject <==> Data.map(
+        "objectVal" -> Data("java.lang.String"),
+        "objectValOfAppliedType" -> Data("scala.Tuple2[java.lang.String, scala.Int]")
+      )
+    }
   }
+
+  private def knownGapOnScala2_13(name: String)(implicit loc: munit.Location): munit.TestOptions =
+    if (LanguageVersion.byHearth.isScala2_13) munit.TestOptions(name).fail else munit.TestOptions(name)
 }

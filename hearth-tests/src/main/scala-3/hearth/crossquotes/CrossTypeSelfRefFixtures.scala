@@ -18,4 +18,10 @@ object CrossTypeSelfRefFixtures {
   inline def testSelfReferentialImplicitCtor: Data = ${ testSelfReferentialImplicitCtorImpl }
   private def testSelfReferentialImplicitCtorImpl(using q: Quotes): Expr[Data] =
     new CrossTypeSelfRefFixtures(q).testSelfReferentialImplicitCtor
+
+  inline def testSelfReferentialImplicitTypeInObject: Data = ${
+    testSelfReferentialImplicitTypeInObjectImpl
+  }
+  private def testSelfReferentialImplicitTypeInObjectImpl(using q: Quotes): Expr[Data] =
+    new CrossTypeSelfRefFixtures(q).testSelfReferentialImplicitTypeInObject
 }
