@@ -67,6 +67,17 @@ final class CrossQuotesEdgeCasesSpec extends MacroSuite {
 
     group("for Type.CtorN.of") {
 
+      // Known gap (Scala 2): the dealiased newtype (`Newtype.Type[Int]`) matches the alias' constructor only when the alias
+      // is a member of an object or a package; for an alias inherited from a trait the prefixes are compared and differ.
+      // Remove `knownGapOnScala2_13` once fixed.
+      test(knownGapOnScala2_13("should unapply an alias that a package object inherits from a trait")) {
+        CrossQuotesEdgeCasesFixtures.testCtorOfAliasInheritedByPackageObject <==> Data.map(
+          "alias constructor on the applied alias" -> Data("scala.Int"),
+          "alias constructor on the applied newtype" -> Data("scala.Int"),
+          "newtype constructor on the applied alias" -> Data("scala.Int")
+        )
+      }
+
       test("should unapply subtypes, aliases and special types, apply any type and respect path-dependent prefixes") {
         CrossQuotesEdgeCasesFixtures.testCtorEdgeCases <==> Data.map(
           "unapply on subtypes" -> Data.map(
@@ -192,4 +203,7 @@ final class CrossQuotesEdgeCasesSpec extends MacroSuite {
       }
     }
   }
+
+  private def knownGapOnScala2_13(name: String)(implicit loc: munit.Location): munit.TestOptions =
+    if (LanguageVersion.byHearth.isScala2_13) munit.TestOptions(name).fail else munit.TestOptions(name)
 }

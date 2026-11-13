@@ -19,6 +19,10 @@ object CrossQuotesEdgeCasesFixtures {
   private def testCtorEdgeCasesImpl(using q: Quotes): Expr[Data] =
     new CrossQuotesEdgeCasesFixtures(q).testCtorEdgeCases
 
+  inline def testCtorOfAliasInheritedByPackageObject: Data = ${ testCtorOfAliasInheritedByPackageObjectImpl }
+  private def testCtorOfAliasInheritedByPackageObjectImpl(using q: Quotes): Expr[Data] =
+    new CrossQuotesEdgeCasesFixtures(q).testCtorOfAliasInheritedByPackageObject
+
   inline def testBoundedCtorClaims: Data = ${ testBoundedCtorClaimsImpl }
   private def testBoundedCtorClaimsImpl(using q: Quotes): Expr[Data] =
     new CrossQuotesEdgeCasesFixtures(q).testBoundedCtorClaims
