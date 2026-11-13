@@ -228,20 +228,25 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         steps += UntypedMethodExpectation.NeedsTypes(typeParameters)
       val valueParamLists = parameters
       if (valueParamLists.nonEmpty) {
-        val groups = groupParamListsByPathDependency(instanceTpe, valueParamLists)
+        val groups = groupParamListsIntoSteps(instanceTpe, valueParamLists)
         groups.foreach(group => steps += UntypedMethodExpectation.NeedsValues(group))
       }
       steps.result()
     }
 
-    private def groupParamListsByPathDependency(
+    private def groupParamListsIntoSteps(
         instanceTpe: UntypedType,
         paramLists: UntypedParameters
     ): List[UntypedParameters] = {
       if (paramLists.sizeIs <= 1) return List(paramLists)
 
+      // A parameter typed with an inner class of the instance's type makes `typeSignatureIn` existentially quantify
+      // over the instance (`((b: _1.Box)(t: b.T)Int) forSome { val _1 }`), and `paramLists` of that is empty.
       val rawParamLists =
-        if (symbol.isMethod) symbol.asMethod.typeSignatureIn(instanceTpe).paramLists
+        if (symbol.isMethod) symbol.asMethod.typeSignatureIn(instanceTpe) match {
+          case ExistentialType(_, underlying) => underlying.paramLists
+          case signature                      => signature.paramLists
+        }
         else Nil
 
       if (rawParamLists.isEmpty) return List(paramLists)
@@ -250,17 +255,20 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
       val result = List.newBuilder[UntypedParameters]
       var currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
 
+      var previousWasImplicit = false
       paramLists.zip(rawParamLists).zipWithIndex.foreach { case ((paramList, rawList), idx) =>
+        val isImplicit = rawList.exists(_.isImplicit)
         val hasDependency = idx > 0 && rawList.exists { param =>
           containsTermRef(param.typeSignature, allPrecedingParamSymbols.toSet)
         }
-        if (hasDependency) {
+        if (idx > 0 && (hasDependency || isImplicit || previousWasImplicit)) {
           val built = currentGroup.result()
           if (built.nonEmpty) result += built
           currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
         }
         currentGroup += paramList
         allPrecedingParamSymbols ++= rawList
+        previousWasImplicit = isImplicit
       }
       val lastGroup = currentGroup.result()
       if (lastGroup.nonEmpty) result += lastGroup
@@ -269,8 +277,9 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     private def containsTermRef(tpe: c.universe.Type, precedingParams: Set[Symbol]): Boolean = tpe match {
       case SingleType(_, sym) if precedingParams.contains(sym) => true
-      case TypeRef(pre, _, _)                                  => containsTermRef(pre, precedingParams)
-      case _                                                   =>
+      case TypeRef(pre, _, args)                               =>
+        containsTermRef(pre, precedingParams) || args.exists(containsTermRef(_, precedingParams))
+      case _ =>
         tpe.typeArgs.exists(containsTermRef(_, precedingParams))
     }
 

@@ -17,7 +17,8 @@ trait Classes { this: MacroCommons =>
           case r: Method.Result[?] =>
             import r.Returned
             r.build().map(_.as_??)
-          case other => Left(s"Unexpected step after ApplyValues: ${other.getClass.getSimpleName}")
+          case next: Method.ApplyValues => applyAndBuild(next, arguments)
+          case other                    => Left(s"Unexpected step after ApplyValues: ${other.getClass.getSimpleName}")
         }
       case r: Method.Result[?] =>
         import r.Returned

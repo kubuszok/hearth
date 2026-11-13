@@ -119,7 +119,7 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
       }
     }
 
-    group("MethodCall.applied mirrors the parameter clauses") {
+    group("MethodCall.applied mirrors the builder chain steps") {
       import DestructuredExprsFixtures.testParseDetailed
 
       def calcRef: Data = Data.map("nodeType" -> Data("ParamRef"), "paramName" -> Data("c"))
@@ -144,13 +144,12 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
         testParseDetailed((c: Calc) => c.nullary()) <==> call("nullary", "scala.Int", instance, values())
       }
 
-      test("each parameter clause is its own AppliedValues") {
+      test("consecutive parameter clauses are merged into one AppliedValues") {
         testParseDetailed((c: Calc) => c.add(1)(2)) <==> call(
           "add",
           "scala.Int",
           instance,
-          values(literal("1")),
-          values(literal("2"))
+          values(literal("1"), literal("2"))
         )
       }
 
@@ -164,7 +163,7 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
         )
       }
 
-      test("an implicit parameter clause is an AppliedValues with the resolved implicit") {
+      test("an implicit parameter clause is a separate AppliedValues with the resolved implicit") {
         testParseDetailed((c: Calc) => c.withImplicit(1)) <==> call(
           "withImplicit",
           "scala.Int",
@@ -297,7 +296,7 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
 
       test("for a method with two value parameter clauses") {
         testAppliedMirrorsExpectations((c: Calc) => c.add(1)(2)) <==> Data.list(
-          call("add", "Instance", "Values", "Values")
+          call("add", "Instance", "Values")
         )
       }
 
@@ -312,14 +311,13 @@ final class DestructuredExprsEdgeCasesSpec extends MacroSuite {
     group("constructor calls") {
       import DestructuredExprsFixtures.{testParseDetailed, testReceiver}
 
-      test("each constructor parameter clause is its own AppliedValues") {
+      test("constructor parameter clauses are merged into one AppliedValues") {
         testParseDetailed(new TwoClauses(1)("b")) <==> Data.map(
           "nodeType" -> Data("MethodCall"),
           "methodName" -> Data("<init>"),
           "returnType" -> Data("hearth.examples.destructurededge.TwoClauses"),
           "applied" -> Data.list(
-            Data.map("kind" -> Data("Values"), "args" -> Data.list(literal("1"))),
-            Data.map("kind" -> Data("Values"), "args" -> Data.list(literal("\"b\"")))
+            Data.map("kind" -> Data("Values"), "args" -> Data.list(literal("1"), literal("\"b\"")))
           )
         )
       }

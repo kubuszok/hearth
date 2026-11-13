@@ -4019,7 +4019,8 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           if (qualTpe == null || qualTpe == NoType) return None
           dstrResolveMethod(qualTpe, coreSym).map { method =>
             val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
-            applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
+            if (!dstrIsQualifierInsertedForImport(core, qualifier))
+              applied += new DestructuredExpr.MethodCall.AppliedInstance(dstrImpl(qualifier, lambdaParams))
             dstrBuildAppliedSteps(steps, lambdaParams, applied, dstrParameterClauses(method))
             new DestructuredExpr.MethodCall(dstrTpeOf(tree), method, applied.result(), () => tree)
           }
@@ -4039,6 +4040,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       }
     }
   }
+
+  /** The typer rewrites a method imported from an object, `twice(1)`, into `functions.twice(1)`. The inserted qualifier
+    * has no flag to tell it apart from a written one, but it only gets the start offset of the name it replaces, while
+    * code written in the source gets a range position.
+    */
+  private def dstrIsQualifierInsertedForImport(select: Tree, qualifier: Tree): Boolean =
+    select.pos.isRange && qualifier.pos != NoPosition && !qualifier.pos.isRange &&
+      qualifier.symbol != null && qualifier.symbol.isModule
 
   private def dstrFlattenCall(tree: Tree): (Tree, List[DstrCallStep]) = tree match {
     case Apply(inner, args) =>

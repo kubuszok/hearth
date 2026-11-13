@@ -2337,9 +2337,40 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
     final class MethodCall private[hearth] (
         val tpe: ??,
         val method: Method,
-        val applied: List[MethodCall.Applied],
+        appliedPerClause: List[MethodCall.Applied],
         private[hearth] val rebuild: () => UntypedExpr
     ) extends DestructuredExpr {
+
+      /** The steps of this call, aligned with `method.expectations`: value arguments of parameter clauses that
+        * [[Method]] applies in one [[Method.ApplyValues]] step are merged into one [[MethodCall.AppliedValues]].
+        */
+      lazy val applied: List[MethodCall.Applied] = {
+        val clausesPerValuesStep = method.expectations.collect { case MethodExpectation.NeedsValues(parameters) =>
+          parameters.size
+        }
+        val valueClauses = appliedPerClause.count(_.isInstanceOf[MethodCall.AppliedValues])
+        // Platform trees can carry clauses the expectations do not know about; then we cannot tell how to merge them.
+        if (clausesPerValuesStep.sum != valueClauses || clausesPerValuesStep.forall(_ == 1)) appliedPerClause
+        else {
+          val result = List.newBuilder[MethodCall.Applied]
+          var remaining = appliedPerClause
+          var stepSizes = clausesPerValuesStep
+          while (remaining.nonEmpty) remaining.head match {
+            case _: MethodCall.AppliedValues =>
+              val (merged, rest) = remaining.splitAt(stepSizes.head)
+              result += new MethodCall.AppliedValues(merged.flatMap {
+                case values: MethodCall.AppliedValues => values.args
+                case _                                => Nil
+              })
+              remaining = rest
+              stepSizes = stepSizes.tail
+            case other =>
+              result += other
+              remaining = remaining.tail
+          }
+          result.result()
+        }
+      }
       def toUntypedExpr: UntypedExpr = rebuild()
       def plainPrint: String = {
         val parts = applied.map {
@@ -2392,7 +2423,8 @@ trait Exprs extends ExprsCrossQuotes with ExprsCompat { this: MacroCommons =>
         */
       final class AppliedTypes private[hearth] (val typeArgs: List[??]) extends Applied
 
-      /** Value arguments for one parameter clause. Maps to [[Method.ApplyValues]].
+      /** Value arguments of the parameter clauses applied in one [[Method.ApplyValues]] step (see
+        * [[MethodExpectation.NeedsValues]]).
         *
         * @since 0.4.0
         */

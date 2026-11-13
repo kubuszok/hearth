@@ -2167,7 +2167,12 @@ Every `Method` carries:
 The expectations list preserves clause interleaving order (Scala 3.6+): a method `def f[A](a: A)[B](b: B)` produces
 `List(NeedsInstance, NeedsTypes([A]), NeedsValues((a: A)), NeedsTypes([B]), NeedsValues((b: B)))`.
 
-Path-dependent parameter lists are split into separate `NeedsValues` entries at dependency boundaries.
+Consecutive value parameter lists are merged into one `NeedsValues` entry (`def add(a: Int)(b: Int)` needs one
+`ApplyValues` step with both `a` and `b`), except that:
+
+ * an `implicit`/`using` parameter list is always a separate `NeedsValues` entry,
+ * a parameter list whose types refer to an earlier parameter (`def unbox(b: Box)(t: b.T)`) starts a new
+   `NeedsValues` entry, so that the earlier arguments are applied before the types it expects can be resolved.
 
 ### Obtaining `Method`
 
@@ -2926,7 +2931,8 @@ original tree, and `position: Option[Position]` for reporting errors at the offe
 ### `MethodCall` and `Applied`
 
 The `MethodCall` node holds a resolved `Method` and its `applied` list mirrors `method.expectations` — each entry
-maps to one step of the builder chain:
+maps to one step of the builder chain, so `calc.add(1)(2)` has one `AppliedValues(1, 2)`, while an implicit argument
+list is a separate `AppliedValues`:
 
 | Applied variant   | Maps to              | Contains                                 |
 |-------------------|----------------------|------------------------------------------|

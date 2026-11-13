@@ -158,7 +158,9 @@ trait Methods { this: MacroCommons =>
     * method's source clauses:
     *   - `NeedsInstance` — the receiver of a non-static, non-constructor method,
     *   - `NeedsTypes` — one type-parameter clause,
-    *   - `NeedsValues` — one value-parameter clause.
+    *   - `NeedsValues` — value-parameter clauses applied together: consecutive clauses are merged into one step, except
+    *     that an `implicit`/`using` clause is always its own step, and a clause whose types refer to an earlier
+    *     parameter (`(b: Box)(t: b.T)`) starts a new step, so the earlier arguments are applied first.
     *
     * Because Scala 3 allows parameter-clause interleaving (`def f[A](a: A)[B](b: B)`) while Scala 2 does not, the
     * number and interleaving of `NeedsTypes`/`NeedsValues` steps can differ between platforms for the same logical
