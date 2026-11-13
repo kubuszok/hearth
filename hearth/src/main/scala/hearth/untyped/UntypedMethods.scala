@@ -177,8 +177,17 @@ trait UntypedMethods { this: MacroCommons =>
       method.parameters.map { params =>
         val adapted = params.view.map { case (paramName, untyped) =>
           def defaultValue = untyped.default(instanceTpe).map { method =>
-            // Default value is called on the same instance as its method
-            method.unsafeApply(instanceTpe)(instance, resolved)
+            // Default value is called on the same instance as its method. The default of a constructor of a generic
+            // class is a generic method of the companion, taking the class's type parameters as its own.
+            val classTypeParams = method.typeParameters.flatten
+            val classTypeArgs = UntypedType.typeArguments(instanceTpe)
+            if (classTypeParams.nonEmpty && classTypeParams.sizeCompare(classTypeArgs) == 0)
+              method.unsafeApplyWithTypes(instanceTpe)(
+                classTypeParams.zip(classTypeArgs.map(_.as_??)).toMap,
+                instance,
+                resolved
+              )
+            else method.unsafeApply(instanceTpe)(instance, resolved)
           }
           val provided = arguments.get(paramName).orElse(defaultValue).getOrElse {
             // $COVERAGE-OFF$
