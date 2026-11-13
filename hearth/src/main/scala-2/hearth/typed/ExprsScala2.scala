@@ -245,6 +245,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           }
         }
         tree match {
+          case _: RefTree =>
+            refusalOf(tree.symbol) match {
+              case Some(error) => return Left(NonEmptyVector.one(error))
+              case None        => ()
+            }
+          case _ => ()
+        }
+        tree match {
           // A Java enum value is constant-folded into a literal whose value is the compiler's symbol of the enum value
           // (only flagged `isJavaEnum` when the enum comes from a classfile, not from a Java source of the same module).
           case Literal(Constant(enumValue: Symbol)) =>
@@ -327,6 +335,11 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           locals: Map[Symbol, Any],
           overrides: Overrides
       ): Result = {
+        unsupportedInLambdaBody(body) match {
+          case Some(construct) =>
+            return Left(NonEmptyVector.one(s"Cannot semi-evaluate a lambda whose body uses $construct"))
+          case None => ()
+        }
         val arity = params.size
         val functionClass =
           try java.lang.Class.forName(s"scala.Function$arity")
@@ -355,6 +368,79 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         Right(proxy)
       }
 
+      // The lambda's body is only evaluated when the function is applied, long after `semiEval` returned it, so a body
+      // that cannot be evaluated would make a `Right` that throws when used.
+      private def unsupportedInLambdaBody(body: Tree): Option[String] =
+        body.collect {
+          case _: Match    => "a match"
+          case _: If       => "an if"
+          case _: LabelDef => "a loop"
+          case _: Try      => "a try"
+          case _: Return   => "a return"
+          case _: Assign   => "an assignment"
+          case _: ImplDef  => "a class definition"
+          case _: DefDef   => "a local definition"
+        }.headOption
+
+      private def refusalOf(sym: Symbol): Option[String] =
+        if (sym == null || sym == NoSymbol) None
+        else if (
+          sym.isTerm && sym.owner.isClass && {
+            val term = sym.asTerm
+            term.isVar || (term.isMethod && term.asMethod.isGetter && term.setter != NoSymbol)
+          }
+        )
+          Some(
+            s"Cannot semi-evaluate ${sym.name.decodedName}: it is a var, and its value at compile time is not its " +
+              "value at runtime"
+          )
+        else {
+          val cls =
+            if (sym.isClass) sym
+            else if (sym.isModule) sym.asModule.moduleClass
+            else sym.owner
+          if (cls != NoSymbol && cls.isClass && !cls.isPackageClass && isCompiledWithTheExpansion(cls))
+            Some(
+              s"Cannot semi-evaluate ${sym.name.decodedName}: ${cls.fullName} is compiled together with the code " +
+                "expanding the macro, so it cannot be loaded at compile time"
+            )
+          else None
+        }
+
+      private val compiledWithTheExpansion = scala.collection.mutable.HashMap.empty[Symbol, Boolean]
+
+      // A symbol compiled from sources in this run has a position, one loaded from a class file does not.
+      private def isCompiledWithTheExpansion(cls: Symbol): Boolean =
+        compiledWithTheExpansion.getOrElseUpdate(
+          cls,
+          cls.pos != NoPosition || (outputDirectories.nonEmpty && moduleCandidates(cls.fullName).iterator.exists {
+            className =>
+              scala.util
+                .Try(java.lang.Class.forName(className, false, getClass.getClassLoader))
+                .toOption
+                .exists(CompilationOutput.isLoadedFrom(outputDirectories, _))
+          })
+        )
+
+      // The macro API does not expose the output directories, so they are read from the compiler's settings
+      // reflectively.
+      private lazy val outputDirectories: List[String] = scala.util
+        .Try {
+          val global: AnyRef = c.universe
+          val settings = global.getClass.getMethod("settings").invoke(global)
+          val outputDirs = settings.getClass.getMethod("outputDirs").invoke(settings)
+          val single = outputDirs.getClass.getMethod("getSingleOutput").invoke(outputDirs) match {
+            case Some(dir: scala.reflect.io.AbstractFile) => List(dir)
+            case _                                        => Nil
+          }
+          val multiple = outputDirs.getClass.getMethod("outputs").invoke(outputDirs) match {
+            case outputs: List[?] => outputs.collect { case (_, dir: scala.reflect.io.AbstractFile) => dir }
+            case _                => Nil
+          }
+          (single ++ multiple).map(dir => CompilationOutput.canonicalPath(dir.path)).distinct
+        }
+        .getOrElse(Nil)
+
       private def evalBlock(stats: List[Tree], expr: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result =
         stats
           .foldLeft[Either[NonEmptyVector[String], Map[Symbol, Any]]](Right(locals)) {
@@ -369,6 +455,14 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       private def evalApplyWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         val (core, argLists) = flattenApply(tree)
         val allArgTrees = argLists.flatten
+        val coreSymbol = core match {
+          case TypeApply(fun, _) => fun.symbol
+          case _                 => core.symbol
+        }
+        refusalOf(coreSymbol) match {
+          case Some(error) => return Left(NonEmptyVector.one(error))
+          case None        => ()
+        }
         core match {
           case Select(New(tpt), termNames.CONSTRUCTOR) =>
             evalConstructor(tpt.tpe, allArgTrees, locals, overrides)
@@ -3687,8 +3781,16 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     }
     // format: on
 
-    override def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]] =
-      builder.mk(builder.value)
+    override def build[From[_], To: Type](builder: LambdaBuilder[From, Expr[To]]): Expr[From[To]] = {
+      val lambda = builder.mk(builder.value)
+      // Scala 2 infers a function literal's result type from its body with literal types widened (`"a"` becomes
+      // `String`), so without an ascription a lambda returning a literal type would not conform to its own type.
+      Type[To].tpe.dealias match {
+        case _: ConstantType =>
+          c.Expr[From[To]](q"(${lambda.tree}: ${lambda.staticType})")(c.WeakTypeTag(lambda.staticType))
+        case _ => lambda
+      }
+    }
 
     override def partition[From[_], A, B, C](builder: LambdaBuilder[From, A])(
         f: A => Either[B, C]

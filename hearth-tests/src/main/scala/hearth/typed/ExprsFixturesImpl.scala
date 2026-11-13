@@ -295,6 +295,61 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     expr.matchOn(matched, unmatched)
   }
 
+  def testValDefsOfType[A: Type, B: Type](value: Expr[A], widened: Expr[B]): Expr[Data] = {
+    val viaVal = ValDefs.createVal[A](value, "a").use(identity)
+    val viaVar = ValDefs.createVar[A](Expr.quote(null.asInstanceOf[A]), "b").use { case (b, set) =>
+      Expr.quote {
+        var iterations = 0
+        while (iterations < 1) {
+          Expr.splice(set(Expr.quote {
+            val actual = Expr.splice(widened)
+            actual.asInstanceOf[A]
+          }))
+          iterations += 1
+        }
+        Expr.splice(b)
+      }
+    }
+    val viaLazy = ValDefs.createLazy[A](value, "c").use(identity)
+    val viaDef = ValDefs.createDef[A](value, "d").use(identity)
+    Expr.quote {
+      Data.map(
+        "val" -> Data(scala.Predef.identity[A](Expr.splice(viaVal)).toString),
+        "var" -> Data(scala.Predef.identity[A](Expr.splice(viaVar)).toString),
+        "lazy" -> Data(scala.Predef.identity[A](Expr.splice(viaLazy)).toString),
+        "def" -> Data(scala.Predef.identity[A](Expr.splice(viaDef)).toString)
+      )
+    }
+  }
+
+  def testLambdasReturningType[A: Type](value: Expr[A]): Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    val quoted: Expr[Int => A] = Expr.quote { (i: Int) =>
+      val _ = i
+      Expr.splice(value)
+    }
+    val built: Expr[Int => A] = LambdaBuilder.of1[Int]("i").map(_ => value).build[A]
+    Expr.quote {
+      val fromQuoted: A = Expr.splice(quoted).apply(0)
+      val fromBuilt: A = Expr.splice(built).apply(0)
+      Data.map("quoted" -> Data(fromQuoted.toString), "built" -> Data(fromBuilt.toString))
+    }
+  }
+
+  def testVarOfLiteralTypeFromCodec: Expr[Data] = {
+    val two: Type[Int] = Type.IntCodec.toType(2)
+    val result = {
+      implicit val intType: Type[Int] = two
+      ValDefs.createVar[Int](Expr(2), "two").use { case (v, set) =>
+        Expr.quote {
+          Expr.splice(set(Expr(2)))
+          Expr.splice(v)
+        }
+      }
+    }
+    Expr.quote(Data(Expr.splice(result)))
+  }
+
   def testValDefsCreateAndUse: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     val valValue = ValDefs.createVal(Expr(1), "a").use { (a: Expr[Int]) =>
@@ -327,6 +382,26 @@ trait ExprsFixturesImpl { this: MacroCommons =>
   // owned by the lambda, not by the macro entry, or `-Xcheck-macros` aborts with "Block contains definition with
   // different owners". This simple shape passes; the same failure is known to need a fuller MIO.scoped/ValDefsCache/
   // recursive derivation structure to trip, which has no minimal reproduction yet.
+  def testLambdaInsideValInsideQuotedLambda: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val stringType: Type[String] = StringType
+    val fn: Expr[Int => String] = Expr.quote { (x: Int) =>
+      val described: String = Expr.splice {
+        val describe = LambdaBuilder
+          .of1[Int]("value")
+          .map(value => Expr.quote("value " + Expr.splice(value).toString))
+          .build[String]
+        ValDefs.createVal(Expr.quote(x), "item").use { (item: Expr[Int]) =>
+          Expr.quote(Option(Expr.splice(item)).map(Expr.splice(describe)).getOrElse(""))
+        }
+      }
+      described.toUpperCase
+    }
+    Expr.quote {
+      Data.map("result" -> Data(Expr.splice(fn).apply(21)))
+    }
+  }
+
   def testValDefsInsideQuotedLambda: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     val fn: Expr[Int => Int] = Expr.quote { (x: Int) =>

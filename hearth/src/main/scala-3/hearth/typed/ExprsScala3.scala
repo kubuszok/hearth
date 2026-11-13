@@ -288,8 +288,24 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           }
         }
         term match {
-          case Inlined(_, _, inner) =>
+          case ref: Ref =>
+            refusalOf(ref.symbol) match {
+              case Some(error) => return Left(NonEmptyVector.one(error))
+              case None        => ()
+            }
+          case _ => ()
+        }
+        term match {
+          case Inlined(_, Nil, inner) =>
             evalWithLocals(inner, locals, overrides)
+
+          // Non-inline arguments of an inline method are bound to proxy vals of the `Inlined` node.
+          case Inlined(_, bindings, inner) =>
+            evalBlock(bindings, inner, locals, overrides)
+
+          // The arguments are already in the positional order (with the defaults filled in), only the names are kept.
+          case NamedArg(_, arg) =>
+            evalWithLocals(arg, locals, overrides)
 
           // The synthesized `ValueOf` given is not always reducible by the reflective evaluator below (e.g. it yields
           // an opaque `ValueOf` whose `.value` getter does not reduce), but it is fully determined by its type
@@ -361,6 +377,12 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               invokeGetter(receiver, term.symbol.name)
             }
 
+          case Ident(_) if isImmutableLocalVal(term.symbol) =>
+            localValRhs(term.symbol) match {
+              case Some(rhs) => evalWithLocals(rhs, locals, overrides)
+              case None      => resolveStableRef(term)
+            }
+
           case Ident(_) =>
             resolveStableRef(term)
 
@@ -374,9 +396,88 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val allParams = paramsClauses.flatMap(_.params).collect { case vd: ValDef => vd }
         ddef.rhs match {
           case None       => Left(NonEmptyVector.one("Lambda has no body"))
-          case Some(body) => evalLambdaWithBody(allParams, body, locals, overrides)
+          case Some(body) =>
+            unsupportedInLambdaBody(body) match {
+              case Some(construct) =>
+                Left(NonEmptyVector.one(s"Cannot semi-evaluate a lambda whose body uses $construct"))
+              case None => evalLambdaWithBody(allParams, body, locals, overrides)
+            }
         }
       }
+
+      // The lambda's body is only evaluated when the function is applied, long after `semiEval` returned it, so a body
+      // that cannot be evaluated would make a `Right` that throws when used.
+      private def unsupportedInLambdaBody(body: Term): Option[String] =
+        new TreeAccumulator[Option[String]] {
+          def foldTree(found: Option[String], tree: Tree)(owner: Symbol): Option[String] =
+            found.orElse(tree match {
+              case _: Match                           => Some("a match")
+              case _: If                              => Some("an if")
+              case _: While                           => Some("a while loop")
+              case _: Try                             => Some("a try")
+              case _: Return                          => Some("a return")
+              case _: Assign                          => Some("an assignment")
+              case _: ClassDef                        => Some("a class definition")
+              case Block(List(_: DefDef), _: Closure) => foldOverTree(None, tree)(owner)
+              case Block(stats, _) if stats.exists { case _: ValDef => false; case _ => true } =>
+                Some("a local definition")
+              case _ => foldOverTree(None, tree)(owner)
+            })
+        }.foldTree(None, body)(Symbol.spliceOwner)
+
+      // A local val (e.g. an inline method's argument proxy) cannot be read by reflection, but its right-hand side is
+      // available. A lazy val is skipped, since its right-hand side may refer to itself.
+      private def isImmutableLocalVal(sym: Symbol): Boolean =
+        !sym.isNoSymbol && sym.isValDef && !sym.owner.isClassDef &&
+          !sym.flags.is(Flags.Mutable) && !sym.flags.is(Flags.Lazy) && !sym.flags.is(Flags.Param)
+
+      private def localValRhs(sym: Symbol): Option[Term] =
+        scala.util.Try(sym.tree).toOption.collect { case ValDef(_, _, Some(rhs)) => rhs }
+
+      private def refusalOf(sym: Symbol): Option[String] =
+        if sym.isNoSymbol then None
+        else if sym.flags.is(Flags.Mutable) && sym.owner.isClassDef then Some(
+          s"Cannot semi-evaluate ${sym.name}: it is a var, and its value at compile time is not its value at runtime"
+        )
+        else {
+          val cls =
+            if sym.isClassDef then sym
+            else if sym.flags.is(Flags.Module) then sym.moduleClass
+            else sym.owner
+          if !cls.isNoSymbol && cls.isClassDef && !cls.flags.is(Flags.Package) && isCompiledWithTheExpansion(cls)
+          then Some(
+            s"Cannot semi-evaluate ${sym.name}: ${cls.fullName.stripSuffix("$")} is compiled together with the code " +
+              "expanding the macro, so it cannot be loaded at compile time"
+          )
+          else None
+        }
+
+      private val compiledWithTheExpansion = scala.collection.mutable.HashMap.empty[Symbol, Boolean]
+
+      private def isCompiledWithTheExpansion(cls: Symbol): Boolean =
+        compiledWithTheExpansion.getOrElseUpdate(
+          cls,
+          cls.isDefinedInCurrentRun || (outputDirectories.nonEmpty && moduleCandidates(cls.fullName).iterator.exists {
+            className =>
+              scala.util
+                .Try(java.lang.Class.forName(className, false, getClass.getClassLoader))
+                .toOption
+                .exists(CompilationOutput.isLoadedFrom(outputDirectories, _))
+          })
+        )
+
+      // The macro API does not expose the output directory, so it is read from the compiler's settings reflectively.
+      private lazy val outputDirectories: List[String] = scala.util
+        .Try {
+          val ctx = quotes.getClass.getMethod("ctx").invoke(quotes)
+          val settings = ctx.getClass.getMethod("settings").invoke(ctx)
+          val outputDir = settings.getClass.getMethod("outputDir").invoke(settings)
+          val state = ctx.getClass.getMethod("settingsState").invoke(ctx)
+          val valueIn = outputDir.getClass.getMethods.find(m => m.getName == "valueIn" && m.getParameterCount == 1).get
+          val dir = valueIn.invoke(outputDir, state)
+          List(CompilationOutput.canonicalPath(dir.getClass.getMethod("path").invoke(dir).toString))
+        }
+        .getOrElse(Nil)
 
       private def evalLambdaWithBody(
           allParams: List[ValDef],
@@ -437,6 +538,14 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       private def evalApplyWithLocals(term: Term, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         val (core, argLists) = flattenApply(term)
         val allArgs = argLists.flatten
+        val coreSymbol = core match {
+          case TypeApply(fun, _) => fun.symbol
+          case _                 => core.symbol
+        }
+        refusalOf(coreSymbol) match {
+          case Some(error) => return Left(NonEmptyVector.one(error))
+          case None        => ()
+        }
         core match {
           case Select(New(tpt), "<init>") =>
             evalConstructor(tpt.tpe, allArgs, locals, overrides)
