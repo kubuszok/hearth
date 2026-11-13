@@ -241,6 +241,10 @@ trait Methods { this: MacroCommons =>
       * enumerate to build the full argument map. Contrast with [[parameters]], which only lists the parameters the
       * CURRENT step still expects.
       *
+      * Type parameters are not included (they are described by [[MethodExpectation.NeedsTypes]]). For a generic method
+      * the parameter types mention its own type parameters as they are declared (`a: A` for `def f[A](a: A)`); the
+      * [[parameters]] of an [[Method.ApplyValues]] step reached after [[Method.ApplyTypes]] have them substituted.
+      *
       * @since 0.4.0
       */
     def totalParameters: Parameters
@@ -1009,7 +1013,7 @@ trait Methods { this: MacroCommons =>
           knownReturning0: Option[() => ??],
           parameters: Parameters,
           next: UntypedArguments => Method
-      )(instanceEvidence: ??, appliedState: AppliedState) = {
+      )(instanceEvidence: ??, appliedState: AppliedState) =
         this(
           asUntyped,
           untypedInstanceType,
@@ -1021,7 +1025,6 @@ trait Methods { this: MacroCommons =>
             next(arguments)
           }
         )(instanceEvidence, appliedState)
-      }
 
       type Instance = instanceEvidence.Underlying
       @ImportedCrossTypeImplicit

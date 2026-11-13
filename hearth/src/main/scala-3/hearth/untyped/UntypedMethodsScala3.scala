@@ -924,7 +924,13 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
       val hasUnresolvedTypeParams = untyped.hasTypeParameters && !untyped.isConstructor
       val totalParams: Parameters =
-        if hasUnresolvedTypeParams then List.empty
+        if hasUnresolvedTypeParams then
+        // Resolving the parameters against the instance type cannot substitute the method's own type parameters; the
+        // expectations already have the parameters with those type parameters left abstract.
+        typedExpectations.flatMap {
+          case MethodExpectation.NeedsValues(parameters) => parameters
+          case _                                         => Nil
+        }
         else UntypedParameters.toTypedWith[Instance](untyped.parameters, () => sharedTypesByParamName)
 
       // Option-ness is decided by cheap flags; the expensive `safeMemberType` resolution inside `Some` is deferred

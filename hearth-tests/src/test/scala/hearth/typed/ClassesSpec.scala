@@ -54,12 +54,16 @@ final class ClassesSpec extends MacroSuite {
             Data.list(
               // Data.map("name" -> Data("_1"), "parameters" -> Data("")), // Scala 3-only, alternative to `a`?
               Data.map("name" -> Data("a"), "parameters" -> Data("")),
-              Data
-                .map("name" -> Data("andThen"), "parameters" -> Data("")), // Scala 2-only, I guess from the companion?
+              Data.map( // Scala 2-only, from the companion extending Function1
+                "name" -> Data("andThen"),
+                "parameters" -> Data("(g: scala.Function1[hearth.examples.classes.ExampleCaseClass, A])")
+              ),
               Data.map("name" -> Data("apply"), "parameters" -> Data("(a: scala.Int)")), // Scala 2-only
               Data.map("name" -> Data("canEqual"), "parameters" -> Data("(x$1: scala.Any)")),
-              Data
-                .map("name" -> Data("compose"), "parameters" -> Data("")), // Scala 2-only, I guess from the companion?
+              Data.map( // Scala 2-only, from the companion extending Function1
+                "name" -> Data("compose"),
+                "parameters" -> Data("(g: scala.Function1[A, scala.Int])")
+              ),
               Data.map("name" -> Data("copy"), "parameters" -> Data("(a: scala.Int)")),
               // Data.map("name" -> Data("fromProduct"), "parameters" -> Data("(x$0: scala.Product)")),
               Data.map("name" -> Data("productArity"), "parameters" -> Data("")),

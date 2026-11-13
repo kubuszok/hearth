@@ -40,7 +40,19 @@ trait TypesScala3 extends Types { this: MacroCommonsScala3 =>
           case -1  => name
           case idx => name.substring(idx + 1)
         }
-      } else (repr.dealias.typeSymbol.name: String).replaceAll("\\$", "")
+      } else
+        repr.dealias match {
+          // A method's own type parameter before its type arguments are applied: its type symbol is its bound's, so
+          // it would print as `Any` instead of its name (as Scala 2 does).
+          case ref: ParamRef =>
+            ref.binder match {
+              case pt: PolyType   => pt.paramNames(ref.paramNum)
+              case tl: TypeLambda => tl.paramNames(ref.paramNum)
+              case _              => (ref.typeSymbol.name: String).replaceAll("\\$", "")
+            }
+          case ByNameType(underlying) => UntypedType.shortName(underlying.asInstanceOf[UntypedType])
+          case dealiased              => (dealiased.typeSymbol.name: String).replaceAll("\\$", "")
+        }
     }
 
     // In Scala 3 typeRepr.dealias dealiases only the "main" type but not types applied as type parameters,

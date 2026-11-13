@@ -168,46 +168,44 @@ final class MethodsJvmSpec extends MacroSuite {
               "javaAccessorName" -> Data("<no java accessor name>"),
               "accessorName" -> Data("<no accessor name>")
             ),
-            (if (LanguageVersion.byHearth.isScala2_13) "getClass()"
-             else "getClass")
-              -> Data.map(
-                "invocation" -> Data("OnInstance"),
-                "hasTypeParameters" -> Data(
-                  !LanguageVersion.byHearth.isScala2_13
-                ), // On Scala 3 it _has_ type parameter
-                "position" -> Data("None"),
-                "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
-                "isConstructor" -> Data(false),
-                "isVal" -> Data(false),
-                "isVar" -> Data(false),
-                "isLazy" -> Data(false),
-                "isDef" -> Data(true),
-                "isFinal" -> Data(true),
-                "isAbstract" -> Data(false),
-                "isOverride" -> Data(LanguageVersion.byHearth.isScala2_13),
-                "isImplicit" -> Data(false),
-                "isDeclared" -> Data(false),
-                "isSynthetic" -> Data(true),
-                "isInherited" -> Data(false),
-                "isAvailable(Everywhere)" -> Data(true),
-                "isAvailable(AtCallSite)" -> Data(true),
-                "arity" -> Data(0),
-                "isNullary" -> Data(true),
-                "isUnary" -> Data(false),
-                "isBinary" -> Data(false),
-                "isConstructorArgument" -> Data(false),
-                "isCaseField" -> Data(false),
-                "isScalaGetter" -> Data(false),
-                "isScalaSetter" -> Data(false),
-                "isScalaAccessor" -> Data(false),
-                "isJavaGetter" -> Data(true),
-                "isJavaSetter" -> Data(false),
-                "isJavaAccessor" -> Data(true),
-                "isAccessor" -> Data(true),
-                "scalaAccessorName" -> Data("<no scala accessor name>"),
-                "javaAccessorName" -> Data("class"),
-                "accessorName" -> Data("class")
-              ),
+            "getClass()" -> Data.map(
+              "invocation" -> Data("OnInstance"),
+              "hasTypeParameters" -> Data(
+                !LanguageVersion.byHearth.isScala2_13
+              ), // On Scala 3 it _has_ type parameter
+              "position" -> Data("None"),
+              "annotations" -> envDependentAnnotations(intrinsicCandidate, "new scala.native()"),
+              "isConstructor" -> Data(false),
+              "isVal" -> Data(false),
+              "isVar" -> Data(false),
+              "isLazy" -> Data(false),
+              "isDef" -> Data(true),
+              "isFinal" -> Data(true),
+              "isAbstract" -> Data(false),
+              "isOverride" -> Data(LanguageVersion.byHearth.isScala2_13),
+              "isImplicit" -> Data(false),
+              "isDeclared" -> Data(false),
+              "isSynthetic" -> Data(true),
+              "isInherited" -> Data(false),
+              "isAvailable(Everywhere)" -> Data(true),
+              "isAvailable(AtCallSite)" -> Data(true),
+              "arity" -> Data(0),
+              "isNullary" -> Data(true),
+              "isUnary" -> Data(false),
+              "isBinary" -> Data(false),
+              "isConstructorArgument" -> Data(false),
+              "isCaseField" -> Data(false),
+              "isScalaGetter" -> Data(false),
+              "isScalaSetter" -> Data(false),
+              "isScalaAccessor" -> Data(false),
+              "isJavaGetter" -> Data(true),
+              "isJavaSetter" -> Data(false),
+              "isJavaAccessor" -> Data(true),
+              "isAccessor" -> Data(true),
+              "scalaAccessorName" -> Data("<no scala accessor name>"),
+              "javaAccessorName" -> Data("class"),
+              "accessorName" -> Data("class")
+            ),
             "hashCode()" -> Data.map(
               "invocation" -> Data("OnInstance"),
               "hasTypeParameters" -> Data(false),
@@ -542,7 +540,8 @@ final class MethodsJvmSpec extends MacroSuite {
               "javaAccessorName" -> Data("<no java accessor name>"),
               "accessorName" -> Data("<no accessor name>")
             ),
-            "synchronized" -> Data.map(
+            // the compilers name the type parameter of `synchronized[T](arg: => T)` differently
+            (if (LanguageVersion.byHearth.isScala2_13) "synchronized(T0)" else "synchronized(X0)") -> Data.map(
               "invocation" -> Data("OnInstance"),
               "hasTypeParameters" -> Data(true),
               "position" -> Data("None"),
@@ -561,9 +560,9 @@ final class MethodsJvmSpec extends MacroSuite {
               "isInherited" -> Data(false),
               "isAvailable(Everywhere)" -> Data(true),
               "isAvailable(AtCallSite)" -> Data(true),
-              "arity" -> Data(0),
-              "isNullary" -> Data(true),
-              "isUnary" -> Data(false),
+              "arity" -> Data(1),
+              "isNullary" -> Data(false),
+              "isUnary" -> Data(true),
               "isBinary" -> Data(false),
               "isConstructorArgument" -> Data(false),
               "isCaseField" -> Data(false),
