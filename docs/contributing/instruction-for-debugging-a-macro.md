@@ -85,9 +85,9 @@ so if you are filtering by column you have to adapt the value after changing whi
 
 ## What to do if there is no debug output
 
-Probably you ran, e.g., `hearthTests/test` or `hearthTests3/test` on a module that was already compiled.
+Probably you ran, e.g., `hearthTests/test` or `hearthTests2/test` on a module that was already compiled.
 
-If so, no new debug messages will be printed by the macro until you run `hearthTests/clean` or `hearthTests3/clean`.
+If so, no new debug messages will be printed by the macro until you run `hearthTests/clean` or `hearthTests2/clean`.
 
 If you are interested primarily in printed messages from a macro, prefer
 `sbt --client "hearthTests/clean ; hearthTests/Test/compile"` to make sure that macros are being expanded anew.

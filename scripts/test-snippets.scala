@@ -1,4 +1,4 @@
-//> using scala 3.3.8
+//> using scala 3.3.9
 //> using dep com.kubuszok::scala-cli-md-spec:0.2.1
 //> using dep org.virtuslab::scala-yaml:0.3.3
 //> using jvm 17

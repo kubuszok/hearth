@@ -159,7 +159,7 @@ trait ExprsEdgeCasesFixturesImpl { this: MacroCommons =>
             })
           catch {
             // A lambda body is only evaluated when the function is applied, so its failures surface here.
-            case e: Throwable =>
+            case e: Exception =>
               val cause = Iterator.iterate(e: Throwable)(_.getCause).takeWhile(_ != null).toList.last
               Left(fp.data.NonEmptyVector(s"<threw on apply: ${cause.getClass.getSimpleName}: ${cause.getMessage}>"))
           }

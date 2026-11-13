@@ -92,18 +92,18 @@ All commands use `sbt --client`:
 
 | What changed                           | Minimum clean commands (Scala 2.13 + 3)                                                                                                                      |
 |----------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `hearth-better-printers`               | `hearthBetterPrinters/clean ; hearthBetterPrinters3/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean` |
-| `hearth-cross-quotes`                  | `hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearth/clean ; hearth3/clean ; quick-clean`                                                            |
-| `hearth`                               | `hearth/clean ; hearth3/clean ; quick-clean`                                                                                                                 |
+| `hearth-better-printers`               | `hearthBetterPrinters/clean ; hearthBetterPrinters2/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearth/clean ; hearth2/clean ; quick-clean` |
+| `hearth-cross-quotes`                  | `hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearth/clean ; hearth2/clean ; quick-clean`                                                            |
+| `hearth`                               | `hearth/clean ; hearth2/clean ; quick-clean`                                                                                                                 |
 | `hearth-tests` only (new test/fixture) | `quick-clean`                                                                                                                                                |
 
-Note: `quick-clean` cleans `hearthTests`, `hearthTests3`, `hearthSandwichTests`, `hearthSandwichTests3`.
+Note: `quick-clean` cleans `hearthTests`, `hearthTests2`, `hearthSandwichTests`, `hearthSandwichTests2`.
 
 Then run tests for the affected Scala version:
 
 ```bash
-sbt --client "hearthTests/test"    # Scala 2.13
-sbt --client "hearthTests3/test"   # Scala 3
+sbt --client "hearthTests2/test"   # Scala 2.13
+sbt --client "hearthTests/test"    # Scala 3
 ```
 
 **Confirm the new test fails as expected** before moving to the fix.
@@ -128,7 +128,7 @@ sbt --client "quick-clean"
 sbt --client "quick-test"
 ```
 
-This runs `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test` after cleaning all JVM test modules.
+This runs `hearthTests/test ; hearthTests2/test ; hearthSandwichTests/test ; hearthSandwichTests2/test` after cleaning all JVM test modules.
 
 If only one Scala version is affected, you may test just that version first for a faster feedback loop, but **always
 run `quick-test` as the final check** before considering the work done.
@@ -148,7 +148,7 @@ run `quick-test` as the final check** before considering the work done.
  - **Nuclear option** (if behavior seems wrong despite clean):
 
    ```bash
-   sbt --client "hearthBetterPrinters/clean ; hearthBetterPrinters3/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes3/clean ; hearthMicroFp/clean ; hearthMicroFp3/clean ; hearth/clean ; hearth3/clean ; quick-clean"
+   sbt --client "hearthBetterPrinters/clean ; hearthBetterPrinters2/clean ; hearthCrossQuotes/clean ; hearthCrossQuotes2/clean ; hearthMicroFp/clean ; hearthMicroFp2/clean ; hearth/clean ; hearth2/clean ; quick-clean"
    sbt --client "quick-test"
    ```
 

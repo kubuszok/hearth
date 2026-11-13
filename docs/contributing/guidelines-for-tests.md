@@ -43,28 +43,26 @@ By default, tests should be placed in `hearthTests/src/test/scala`, so that:
 
 however there are exceptions:
 
- - `scala-newest` directories are used for tests that should only run on the **newest** supported Scala versions
-   (currently 2.13.18 and 3.8.4 for regression testing). These are used for:
+ - the library is published for the LTS versions (2.13.16 and 3.3.9), but `hearth-tests` is also compiled by newer
+   compilers, in separate, always visible subprojects (tiers) that link against the LTS-compiled library:
 
-     - **Demo/example code** that showcases advanced features or complex macro implementations (e.g., `FastShowPrettySpec`)
-     - **Features that require newer Scala versions** not available in the primary versions (2.13.16 and 3.3.8)
-     - **Regression tests** for newer compiler versions
+     | Tier     | Scala versions  | Projects                                                     |
+     |----------|-----------------|--------------------------------------------------------------|
+     | LTS      | 2.13.16 + 3.3.9 | `hearthTests2`, `hearthTests` (all platforms)                 |
+     | Next-LTS | 2.13.18 + 3.9.0 | `hearthTests2NextLts`, `hearthTestsNextLts` (JVM only)        |
+     | Next     | 3.10.1          | `hearthTestsNext` (JVM only, no Scala 2.13)                   |
 
-   Directory variants:
-     - `hearthTests/src/main/scala-newest` - shared code for newest Scala versions (both 2.13.18 and 3.8.4)
-     - `hearthTests/src/main/scala-newest-2` - Scala 2.13.18-specific code
-     - `hearthTests/src/main/scala-newest-3` - Scala 3.8.4-specific code
-     - `hearthTests/src/test/scala-newest` - shared tests for newest Scala versions
-     - `hearthTests/src/test/scala-newest-2` - Scala 2.13.18-specific tests
-     - `hearthTests/src/test/scala-newest-3` - Scala 3.8.4-specific tests
+   Which tiers compile a source directory:
 
-   **Important:** These directories are **only included** when the `NEWEST_SCALA_TESTS=true` environment variable is set.
-   When this variable is set:
-     - `hearthTests` (Scala 2.13) compiles with Scala 2.13.18 instead of 2.13.16
-     - `hearthTests3` (Scala 3) compiles with Scala 3.8.4 instead of 3.3.8
-     - The `scala-newest` directories are added to the source directories of the same project
+     | Directory                                                | LTS | Next-LTS | Next | Use for                                                     |
+     |----------------------------------------------------------|:---:|:--------:|:----:|-------------------------------------------------------------|
+     | `scala/`, `scala-2/`, `scala-3/`                         | ✓   | ✓        | ✓    | everything that compiles on every version (the default)     |
+     | `scala-lts/`, `scala-lts-2/`, `scala-lts-3/`             | ✓   | ✓        | —    | syntax that 3.10+ deprecated or removed                     |
+     | `scala-next-lts/`, `scala-next-lts-2/`, `scala-next-lts-3/` | —   | ✓        | —    | features missing from the LTS versions (2.13.17+, 3.4–3.9)  |
+     | `scala-next/`, `scala-next-3/`                           | —   | —        | ✓    | features of 3.10+                                           |
 
-   Without `NEWEST_SCALA_TESTS=true`, these directories are completely ignored and the projects use the primary versions.
+   When a 3.10 deprecation forces code out of `scala-3/`, move the old-syntax version to `scala-lts-3/` and put the
+   new-syntax version in `scala-next-3/`.
 
  - `hearth.fp` uses JVM-specific utilities which CAN be used in JS and Native macros but CANNOT be linked by JS and Native code generators,
    therefore they can only be tested on JVM, and they are placed in `hearthTests/src/test/scalajvm`
@@ -86,34 +84,6 @@ however there are exceptions:
  - for "sandwich" tests (whether it's possible to do `Scala 2.13 module -> Scala 3 module -> Scala 2.13 module` or `Scala 3 module -> Scala 2.13 module -> Scala 3 module`,
    allowing for Scala 3 code expanding macros that use Scala 2.13-compiled types, or Scala 2.13 code expanding macros that use Scala 3-compiled types)
    we are using a different module, placing tests in `hearthSandwichTests/src/test/scala`
-
-### When to use scala-newest directories
-
-**Use `scala-newest` when:**
-- Creating demo/example code that showcases complex macro features (like `FastShowPrettySpec`)
-- Testing features that require compiler capabilities only available in newer Scala versions
-- Writing regression tests specifically for newer compiler versions (2.13.18 or 3.8.4)
-- The code would benefit from newer language features but should not block development on primary versions
-
-**Do NOT use `scala-newest` when:**
-- Writing standard library tests (use `src/test/scala` instead)
-- The code can work on primary versions (2.13.16 and 3.3.8)
-- Adding core functionality tests (these should work on primary versions)
-- The test is critical for CI/CD pipeline validation (primary versions are tested in CI)
-
-**Example:**
-```scala
-// hearth-tests/src/test/scala-newest/hearth/demo/allfeatures/FastShowPrettySpec.scala
-// This is a demo/example showcasing FastShowPretty derivation
-// It uses scala-newest because it's a demonstration, not core library testing
-
-final class FastShowPrettySpec extends MacroSuite {
-  test("value types") {
-    val result = FastShowPretty.render(ExampleValueClass(42), RenderConfig.Default)
-    assertEquals(result, "42")
-  }
-}
-```
 
 ## Best Practices for Testing Macros
 
@@ -533,65 +503,24 @@ That means compiling a large project matrix, and it usually crashes the build to
 when Scala.js/Scala Native starts linking all these versions at once.
 
 But all of tests live in `hearthTests` and `hearthSandwichTests` modules.
-So running `hearthTests/test ; hearthTests3/test ; hearthSandwichTests/test ; hearthSandwichTests3/test`
-(or `quick-test` if you are human) should be enough.
+So running `hearthTests/test ; hearthTests2/test ; hearthSandwichTests/test ; hearthSandwichTests2/test`
+(the `quick-test` alias) should be enough.
 
 > If working on macros, sometimes even though you modified the code, the macro is not recompiled.
-> Use `hearth/clean ; hearth3/clean ; hearthTests/clean ; hearthTests3/clean`
-> (or `quick-clean` if you are human) to clean tests and force recompilation before another run.
+> Use `hearth/clean ; hearth2/clean ; quick-clean` to clean tests and force recompilation before another run.
 
-### Running tests in scala-newest directories
+### Running the regression tiers
 
-Tests in `scala-newest` directories are **only** compiled and run when the `NEWEST_SCALA_TESTS=true` environment
-variable is set. This variable switches the `hearthTests` and `hearthTests3` projects to use newer Scala versions
-(2.13.18 and 3.8.4) and includes the `scala-newest` source directories.
+The Next-LTS and Next tiers are ordinary subprojects, so no environment variables are needed:
 
-**For Scala 3.8.4 (scala-newest-3):**
 ```bash
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/clean"
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/compile"
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/test"
-# Or run a specific test:
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests3/testOnly hearth.demo.allfeatures.FastShowPrettySpec"
+sbt --client "quick-clean-next-lts ; quick-test-next-lts" # 2.13.18 and 3.9.0
+sbt --client "quick-clean-next ; quick-test-next"         # 3.10.1
+# or a single suite:
+sbt --client "hearthTestsNextLts/testOnly hearth.demo.allfeatures.FastShowPrettySpec"
 ```
 
-**For Scala 2.13.18 (scala-newest-2):**
-```bash
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests/clean"
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests/compile"
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests/test"
-# Or run a specific test:
-NEWEST_SCALA_TESTS=true sbt --client "hearthTests/testOnly hearth.demo.allfeatures.FastShowPrettySpec"
-```
-
-**Using quick-test with newest versions:**
-
-The `quick-test` command with `NEWEST_SCALA_TESTS=true` runs tests using the newest Scala versions:
-```bash
-NEWEST_SCALA_TESTS=true sbt --client "quick-clean"
-NEWEST_SCALA_TESTS=true sbt --client "quick-test"
-```
-
-This will test against:
-- Scala 2.13.18 (hearthTests upgraded from 2.13.16)
-- Scala 3.8.4 (hearthTests3 upgraded from 3.3.8)
-- Cross-version sandwich tests (with newest versions)
-
-**Without the environment variable:**
-
-Running the same commands **without** `NEWEST_SCALA_TESTS=true` will:
-- Use primary versions (2.13.16 and 3.3.8)
-- Ignore all `scala-newest` directories completely
-- This is the normal development mode
-
-**Important notes:**
-- `scala-newest` directories are **only visible** when `NEWEST_SCALA_TESTS=true` is set
-- The environment variable doesn't create separate projects; it modifies the existing `hearthTests` and `hearthTests3` projects
-- When working on code in `scala-newest` directories, always clean the module before testing
-- The newest versions (2.13.18 and 3.8.4) are used for regression testing, not for primary development
-- Primary development versions are 2.13.16 and 3.3.8
-- **CI runs tests BOTH ways:** with `NEWEST_SCALA_TESTS=false` (primary versions) AND `NEWEST_SCALA_TESTS=true` (newest versions)
-  to ensure code works on both primary and newest Scala versions
+CI runs every tier, so a change is only done when all of them pass.
 
 ## Critical Dependency Chain for Testing
 
@@ -694,5 +623,5 @@ SomeFixtures.testSomething(...) <==> Data.map(
 After adding or modifying fixtures, **always clean the module chain** before running tests.
 Incremental compilation does NOT reliably re-expand macros when fixture implementations change.
 
-At minimum, run `quick-clean` (cleans `hearthTests`, `hearthTests3`, `hearthSandwichTests`, `hearthSandwichTests3`)
+At minimum, run `quick-clean` (cleans `hearthTests`, `hearthTests2`, `hearthSandwichTests`, `hearthSandwichTests2`)
 before `quick-test`. For a full clean table by module, see the [bug fix instruction](instruction-for-fixing-a-bug.md).
