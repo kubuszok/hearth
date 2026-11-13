@@ -341,13 +341,22 @@ trait StdExtensions { this: MacroCommons =>
         } else skippedReasons += (provider.name -> ProviderResult.preFilteredReason)
       }
       matched match {
-        case Some(ctorLikes) => ProviderResult.Matched(ctorLikes)
+        case Some(ctorLikes) => ProviderResult.Matched(sortedByDeclaration(ctorLikes))
         case None            =>
           NonEmptyMap.fromListMap(skippedReasons) match {
             case Some(nem) => ProviderResult.Skipped(nem)
             case None      => ProviderResult.skippedLazily("CtorLikes", "No providers registered")
           }
       }
+    }
+
+    // Each provider contributes the constructors of one result shape, so concatenating them follows the order in which
+    // providers were registered rather than the order in which the constructors were declared.
+    private def sortedByDeclaration[A](ctorLikes: CtorLikes[A]): CtorLikes[A] = {
+      val (withMethod, withoutMethod) = ctorLikes.toList.partition(_.value.method.isDefined)
+      NonEmptyList
+        .fromList(Method.sortBy(withMethod)(_.value.method.get) ++ withoutMethod)
+        .getOrElse(ctorLikes)
     }
 
     /** Builder trait for creating CtorLike from an existential input type. Used instead of polymorphic function types
