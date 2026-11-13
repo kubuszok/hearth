@@ -505,7 +505,7 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       // return into a trailing `using` parameter clause (`MethodType(x)(MethodType(using B)(C))`), which makes the
       // synthesized override return `C` where the trait returns `B ?=> C` — a runtime `ClassCastException` at the call
       // site. The source return type is still visible on the symbol's tree, so detect it there and recover both the
-      // ContextFunctionN result and the count of REAL (pre-desugaring) value parameter clauses. On 3.3.8 the member
+      // ContextFunctionN result and the count of REAL (pre-desugaring) value parameter clauses. On 3.3 LTS the member
       // type is not desugared and this collapses to a no-op.
       def contextFunctionReturn(sym: Symbol): Option[(Int, TypeRepr)] =
         try

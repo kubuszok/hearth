@@ -7,7 +7,7 @@ This document provides guidelines for AI agents (like Claude Code, GitHub Copilo
 **Hearth** is the first Scala macros' standard library, designed to make macro development easier and more maintainable across Scala 2.13 and Scala 3.
 
 - **Language**: Scala (pure Scala library)
-- **Scala Versions**: 2.13.16, 3.3.8 (primary/LTS); 2.13.18, 3.9.0 (Next-LTS regression); 3.10.0-RC1 (Next regression)
+- **Scala Versions**: 2.13.16, 3.3.9 (primary/LTS); 2.13.18, 3.9.0 (Next-LTS regression); 3.10.1 (Next regression)
 - **Platforms**: JVM, Scala.js, Scala Native
 - **Build Tool**: SBT (but see restrictions below)
 - **License**: Apache 2.0
@@ -316,14 +316,14 @@ For the complete bug-fix workflow (reproduce → fix → verify), see [Instructi
 ### Test tier structure
 
 Regression testing uses always-visible sbt subprojects (NOT env vars). Published modules compile
-only at LTS versions (2.13.16 / 3.3.8). Test modules have tier rows that compile at regression
+only at LTS versions (2.13.16 / 3.3.9). Test modules have tier rows that compile at regression
 versions but link against LTS-compiled library artifacts (binary compatible).
 
 | Tier     | Scala versions  | Project suffix         | Purpose                                   |
 |----------|-----------------|------------------------|-------------------------------------------|
-| LTS      | 2.13.16 + 3.3.8 | (none) / `2`           | Published versions, all platforms         |
+| LTS      | 2.13.16 + 3.3.9 | (none) / `2`           | Published versions, all platforms         |
 | Next-LTS | 2.13.18 + 3.9.0 | `NextLts` / `2NextLts` | Last cross-compiling generation, JVM-only |
-| Next     | 3.10.0-RC1      | `Next`                 | Forward-looking, no 2.13, JVM-only        |
+| Next     | 3.10.1      | `Next`                 | Forward-looking, no 2.13, JVM-only        |
 
 **Project naming convention:** Scala 3 is the default (no suffix). Scala 2.13 gets the `2` suffix.
 Examples: `hearth` = Scala 3, `hearth2` = Scala 2.13, `hearthTestsNextLts` = tests at 3.9.
@@ -405,7 +405,7 @@ The `Method` API has a layered architecture with platform-specific untyped code 
 - Scala 2: quasiquotes `q"new $parent(..$args) with ..$traits { ..$overrides }"`
 - Scala 3: `Symbol.newClass` + `ClassDef.apply` via Java reflection (avoiding `@experimental`)
 - Scala 3: prepends `AnyRef` when first parent is a trait (required by `Symbol.newClass`)
-- Member-shape handling (Issue B): symbolic names use the symbol's encoded name (`$plus`, not a fresh `TermName("+")`); `implicit`/`using` clauses keep their modifier; abstract `val` targets emit a `val` (Scala 3: `Symbol.newVal` + `declaredFields`); `this.type` returns are retargeted to the synthesized subtype's `this.type` (Scala 2: `tq"this.type"`; Scala 3: `replaceResult` onto `This(cls).tpe`, detected via `Symbol.tree` returnTpt being a `ThisType`) and signalled to the body via `OverrideContext.returnsThisType`; context-function returns (`B ?=> C`) are detected via `Symbol.tree` returnTpt (`scala.ContextFunctionN`) and `truncateToResult` strips the desugared trailing `using` clause that Scala 3.8.4 introduces (no-op on 3.3.8, which does not desugar)
+- Member-shape handling (Issue B): symbolic names use the symbol's encoded name (`$plus`, not a fresh `TermName("+")`); `implicit`/`using` clauses keep their modifier; abstract `val` targets emit a `val` (Scala 3: `Symbol.newVal` + `declaredFields`); `this.type` returns are retargeted to the synthesized subtype's `this.type` (Scala 2: `tq"this.type"`; Scala 3: `replaceResult` onto `This(cls).tpe`, detected via `Symbol.tree` returnTpt being a `ThisType`) and signalled to the body via `OverrideContext.returnsThisType`; context-function returns (`B ?=> C`) are detected via `Symbol.tree` returnTpt (`scala.ContextFunctionN`) and `truncateToResult` strips the desugared trailing `using` clause that Scala 3.8.4 introduces (no-op on 3.3 LTS, which does not desugar)
 
 **Test infrastructure:**
 - `hearth-tests/src/main/scala/hearth/typed/AnonymousInstanceFixturesImpl.scala` — shared fixtures

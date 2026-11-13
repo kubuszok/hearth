@@ -48,9 +48,15 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
           "nested" -> Data(Type.of[Map[String, List[Option[A]]]].plainPrint)
         ),
         "compound type" -> Data.map(
-          "is subtype of the first component" -> Data(Type.of[MarkerA with MarkerB] <:< Type.of[MarkerA]),
-          "is subtype of the second component" -> Data(Type.of[MarkerA with MarkerB] <:< Type.of[MarkerB]),
-          "component is not a subtype of the compound" -> Data(Type.of[MarkerA] <:< Type.of[MarkerA with MarkerB])
+          "is subtype of the first component" -> Data(
+            Type.of[hearth.examples.intersections.And[MarkerA, MarkerB]] <:< Type.of[MarkerA]
+          ),
+          "is subtype of the second component" -> Data(
+            Type.of[hearth.examples.intersections.And[MarkerA, MarkerB]] <:< Type.of[MarkerB]
+          ),
+          "component is not a subtype of the compound" -> Data(
+            Type.of[MarkerA] <:< Type.of[hearth.examples.intersections.And[MarkerA, MarkerB]]
+          )
         ),
         "path-dependent types" -> Data.map(
           "selected through a stable path" -> Data(Type.of[PathDependent.first.Inner].plainPrint),

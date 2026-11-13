@@ -46,11 +46,11 @@ I recommend to:
  3. run `sbt --client "ci-jvm-2_13 ; ci-jvm-3"` (or `./sbt --client "ci-jvm-2_13 ; ci-jvm-3"` if you're using the repo launcher) to test if everything works
  4. if it does, then you should be able to open the folder in your IDE, and it should recognize it as sbt project and start indexing it
  5. if it succeeds you should be able to see that IDE imported modules like:
-    - `hearth`/`hearth3`
-    - `hearthCrossQuotes`/`hearthCrossQuotes3`
-    - `hearthMicroFp`/`hearthMicroFp3`
-    - `hearthMunit`/`hearthMunit3`
-    - `hearthTests`/`hearthTests3`
+    - `hearth`/`hearth2`
+    - `hearthCrossQuotes`/`hearthCrossQuotes2`
+    - `hearthMicroFp`/`hearthMicroFp2`
+    - `hearthMunit`/`hearthMunit2`
+    - `hearthTests`/`hearthTests2`
 
 For local iteration (and before a PR), you can also run checks without an interactive sbt shell: `sbt --client "quick-clean ; quick-test"` exercises the same JVM test set the contributing docs use. See the [instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md) for clean commands when you change specific modules.
 

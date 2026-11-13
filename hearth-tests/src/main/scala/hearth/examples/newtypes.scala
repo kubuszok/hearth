@@ -22,7 +22,7 @@ object newtypes {
     type Repr = Int
     type Base = Any { type Age__newtype }
     trait Tag extends Any
-    type Type <: Base with Tag
+    type Type <: intersections.And[Base, Tag]
     def apply(value: Int): Age = value.asInstanceOf[Age]
     override def toString: String = "Age"
   }
@@ -32,7 +32,7 @@ object newtypes {
   object Tagged {
     type Base = Any { type Tagged__newtype }
     trait Tag[A] extends Any
-    type Type[A] <: Base with Tag[A]
+    type Type[A] <: intersections.And[Base, Tag[A]]
     def apply[A](value: A): Tagged[A] = value.asInstanceOf[Tagged[A]]
     override def toString: String = "Tagged"
   }

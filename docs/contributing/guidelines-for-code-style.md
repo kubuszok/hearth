@@ -34,7 +34,7 @@
    - Shared code goes in `src/main/scala/`
    - Scala 2-specific code in `src/main/scala-2/`
    - Scala 3-specific code in `src/main/scala-3/`
-   - Newest Scala 3 features in `src/main/scala-newest-3/`
+   - Code that needs newer compilers in the tier directories (`scala-lts*`, `scala-next-lts*`, `scala-next*`), see [Guidelines for tests](guidelines-for-tests.md)
 
 2. **Cross-platform code sharing:**
    - Shared platform code in base `scala/` directory
