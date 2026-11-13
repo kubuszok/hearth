@@ -23,11 +23,12 @@ final class ExprsEdgeCasesScala2Spec extends MacroSuite {
       )
     }
 
-    test("Expr.summonImplicit reports a diverging implicit search as Diverging") {
+    // The compiler's silent implicit search returns the same empty tree for "not found" and "diverging".
+    test("Expr.summonImplicit reports a diverging implicit search as NotFound, since Scala 2 cannot tell them apart") {
       import ExprsEdgeCasesFixtures.testSummoningOutcome
 
       testSummoningOutcome[hearth.examples.exprsedge.DivergingEvidence[Int]] <==> Data.map(
-        "outcome" -> Data("diverging"),
+        "outcome" -> Data("notFound"),
         "isDefined" -> Data(false),
         "isEmpty" -> Data(true),
         "nonEmpty" -> Data(false),

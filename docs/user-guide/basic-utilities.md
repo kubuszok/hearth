@@ -755,6 +755,10 @@ might be necessary).
 | `Expr.summonImplicit[Ordering[String]]`                                              | `Type[Ordering[String]].summonExpr`                                              | `SummoningResult[Ordering[String]]` | summon implicit value as expression, on failure give reason why |
 | `Expr.summonImplicitIgnoring[Ordering[String]](untypedMethod1, untypedMethod2, ...)` | `Type[Ordering[String]].summonExprIgnoring(untypedMethod1, untypedMethod2, ...)` | `SummoningResult[Ordering[String]]` | same as above, but ignores the symbols of provided methods      |
 
+On Scala 2 a diverging implicit search is reported as `SummoningResult.NotFound`, not as
+`SummoningResult.Diverging`: the compiler's silent implicit search returns the same empty result for "not found" and
+"diverging", so the two cannot be told apart. Scala 3 reports `Diverging`.
+
 `summonImplicitIgnoring`/`summonExprIgnoring` rely on functionality that, on Scala 2.13, is available since 2.13.17 and on Scala 3 since 3.7.0 - it will throw if you use it on lower versions of Scala.
 
 It can be used to e.g. prevent the macro from summoning itself, so that recursion will be handled within the same macro expansion by the macro.
@@ -4066,6 +4070,10 @@ ai.construct(
 ```
 
 Errors are accumulated (multiple missing overrides, conflicting methods) and returned as `NonEmptyVector[String]`.
+
+An abstract `var` can be implemented only on Scala 2, where its getter and setter (`name_=`) are overridden like any
+other methods. Scala 3 accepts only a concrete `var` as an implementation of an abstract `var`, and a macro cannot
+synthesize one together with its setter, so `construct` returns an error naming the `var` instead.
 
 ## `Position`
 

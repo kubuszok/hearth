@@ -548,10 +548,16 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[examples.classesedge.AITraitWithProtected] <==> "success"
         }
 
-        // Checked through compileErrors, so that a failing expansion fails only this test instead of the whole test
-        // compilation.
-        test("abstract vars are overridden with a getter and a setter") {
-          compileErrors("hearth.typed.AnonymousInstanceFixtures.testAnonymousInstanceConstructVar") <==> ""
+        test(
+          "abstract vars are overridden with a getter and a setter on Scala 2, and rejected with a reason on Scala 3"
+        ) {
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructVar <==> (
+            if (LanguageVersion.byHearth.isScala3)
+              "errors: Abstract var `abstractVar` cannot be implemented by an anonymous instance on Scala 3: " +
+                "Scala 3 lets only a concrete `var` implement an abstract `var` (a getter/setter pair is rejected), " +
+                "and a `var` cannot be synthesized with its setter by a macro"
+            else "the-var"
+          )
         }
 
         test("by-name parameters are passed to the override body") {
