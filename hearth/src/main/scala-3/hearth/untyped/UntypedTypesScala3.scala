@@ -214,8 +214,9 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
 
     override def isNamedTuple(instanceTpe: UntypedType): Boolean =
       namedTupleTypeSymbol.exists { ntSym =>
-        val sym = instanceTpe.typeSymbol
-        sym == ntSym || (instanceTpe match {
+        // `NamedTuple` is opaque, so dealiasing a `type Person = (name: String, age: Int)` stops at `NamedTuple[N, V]`.
+        val dealiased = instanceTpe.dealias
+        dealiased.typeSymbol == ntSym || (dealiased match {
           case AppliedType(tycon, _) => tycon.typeSymbol == ntSym
           case _                     => false
         })
