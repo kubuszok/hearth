@@ -157,7 +157,7 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     /** Reports an error at the macro expansion point, without aborting the expansion.
       *
       * Hearth passes every call straight to the compiler's reporter, and the compilers differ: Scala 2 shows only the
-      * first error reported at a position (the following calls, including [[reportErrorAndAbort]], are no-ops), while
+      * first error reported at a position (the following calls, including `reportErrorAndAbort`, are no-ops), while
       * Scala 3 shows every error. Aggregate the errors and report them once to get the same result on both.
       *
       * @since 0.1.0
