@@ -322,7 +322,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       if isConstructor then {
         val valueParamLists = parameters
         if valueParamLists.nonEmpty then {
-          val groups = groupParamListsByPathDependency(instanceTpe, valueParamLists)
+          val groups = groupParamListsIntoSteps(instanceTpe, valueParamLists)
           groups.foreach(group => steps += UntypedMethodExpectation.NeedsValues(group))
         }
       } else {
@@ -336,7 +336,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         def flushValues(): Unit = {
           val accumulated = valueParamAccum.result()
           if accumulated.nonEmpty then {
-            val groups = groupParamListsByPathDependency(instanceTpe, accumulated)
+            val groups = groupParamListsIntoSteps(instanceTpe, accumulated)
             groups.foreach(group => steps += UntypedMethodExpectation.NeedsValues(group))
           }
           valueParamAccum = List.newBuilder[ListMap[String, UntypedParameter]]
@@ -360,7 +360,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       steps.result()
     }
 
-    private def groupParamListsByPathDependency(
+    private def groupParamListsIntoSteps(
         instanceTpe: UntypedType,
         paramLists: UntypedParameters
     ): List[UntypedParameters] = {
@@ -379,17 +379,20 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       val result = List.newBuilder[UntypedParameters]
       var currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
 
+      var previousWasImplicit = false
       paramLists.zip(paramListTypes).zipWithIndex.foreach { case ((paramList, paramTypeList), idx) =>
+        val isImplicit = paramList.values.exists(_.isImplicit)
         val hasDependency = idx > 0 && paramTypeList.exists { case (_, tpe) =>
           containsTermParamRef(tpe, allPrecedingParamNames.toSet)
         }
-        if hasDependency then {
+        if idx > 0 && (hasDependency || isImplicit || previousWasImplicit) then {
           val built = currentGroup.result()
           if built.nonEmpty then result += built
           currentGroup = List.newBuilder[ListMap[String, UntypedParameter]]
         }
         currentGroup += paramList
         allPrecedingParamNames ++= paramList.keys
+        previousWasImplicit = isImplicit
       }
       val lastGroup = currentGroup.result()
       if lastGroup.nonEmpty then result += lastGroup
@@ -404,13 +407,20 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     private def containsTermParamRef(tpe: TypeRepr, precedingParamNames: Set[String]): Boolean = {
       def check(t: TypeRepr): Boolean = t match {
         case TermRef(_, name) if precedingParamNames.contains(name) => true
-        case AppliedType(tycon, args)                               => check(tycon) || args.exists(check)
-        case AndType(left, right)                                   => check(left) || check(right)
-        case OrType(left, right)                                    => check(left) || check(right)
-        case TypeBounds(lo, hi)                                     => check(lo) || check(hi)
-        case AnnotatedType(tp, _)                                   => check(tp)
-        case ByNameType(tp)                                         => check(tp)
-        case _                                                      => false
+        case TermRef(qualifier, _)                                  => check(qualifier)
+        case TypeRef(prefix, _)                                     => check(prefix)
+        case ref: ParamRef                                          =>
+          ref.binder match {
+            case mt: MethodType => precedingParamNames.contains(mt.paramNames(ref.paramNum))
+            case _              => false
+          }
+        case AppliedType(tycon, args) => check(tycon) || args.exists(check)
+        case AndType(left, right)     => check(left) || check(right)
+        case OrType(left, right)      => check(left) || check(right)
+        case TypeBounds(lo, hi)       => check(lo) || check(hi)
+        case AnnotatedType(tp, _)     => check(tp)
+        case ByNameType(tp)           => check(tp)
+        case _                        => false
       }
       check(tpe)
     }

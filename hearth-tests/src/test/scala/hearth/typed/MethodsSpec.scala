@@ -2413,7 +2413,8 @@ final class MethodsSpec extends MacroSuite {
               "name" -> Data("withImplicit"),
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
-                Data("NeedsValues(a: scala.Int)(b: java.lang.String)")
+                Data("NeedsValues(a: scala.Int)"),
+                Data("NeedsValues(b: java.lang.String)")
               ),
               "knownReturning" -> Data(knownRet),
               "toString" -> Data(
@@ -2453,7 +2454,8 @@ final class MethodsSpec extends MacroSuite {
               "expectations" -> Data.list(
                 Data("NeedsInstance"),
                 Data("NeedsTypes[F]"),
-                Data("NeedsValues(config: java.lang.String)(ev: hearth.examples.methods.Sync[F])")
+                Data("NeedsValues(config: java.lang.String)"),
+                Data("NeedsValues(ev: hearth.examples.methods.Sync[F])")
               ),
               "knownReturning" -> Data("<none>"),
               "toString" -> Data(
@@ -3027,14 +3029,16 @@ final class MethodsSpec extends MacroSuite {
       "built" -> Data("built: =:= R")
     )
     val P = "hearth.examples.genericmethods"
-    val serviceBefore = s"NeedsValues(config: $P.Config)(evidence$$1: $P.SyncLike[F])"
-    val serviceAfter = s"NeedsValues(config: $P.Config)(evidence$$1: $P.SyncLike[$P.SomeF])"
+    val serviceConfig = s"NeedsValues(config: $P.Config)"
+    val serviceBefore = s"NeedsValues(evidence$$1: $P.SyncLike[F])"
+    val serviceAfter = s"NeedsValues(evidence$$1: $P.SyncLike[$P.SomeF])"
     val serviceSteps = Data.list(
-      step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceBefore),
-      step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceBefore),
+      step("OnInstance", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceConfig, serviceBefore),
+      step("ApplyTypes", "<none>", "NeedsInstance", "NeedsTypes[F]", serviceConfig, serviceBefore),
       // known right after ApplyTypes, before the value clauses are applied
-      step("ApplyValues", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceAfter),
-      step("Result", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceAfter),
+      step("ApplyValues", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceConfig, serviceAfter),
+      step("ApplyValues", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceConfig, serviceAfter),
+      step("Result", "=:= R", "NeedsInstance", "NeedsTypes[F]", serviceConfig, serviceAfter),
       result
     )
 

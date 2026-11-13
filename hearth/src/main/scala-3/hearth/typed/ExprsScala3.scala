@@ -5500,7 +5500,10 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         val ctor = ctors.find(_.symbol == core.symbol).orElse(ctors.headOption)
         ctor.map { method =>
           val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
-          dstrBuildAppliedSteps(steps, lambdaParams, applied)
+          // `new Box[Int](1)` applies the class's type arguments, which are part of the constructed type, not of the
+          // constructor's own signature - as on Scala 2, where they only appear in `New`'s type.
+          val valueSteps = steps.filterNot(_.isInstanceOf[DstrTypeStep])
+          dstrBuildAppliedSteps(valueSteps, lambdaParams, applied)
           new DestructuredExpr.MethodCall(
             dstrTpeOf(term),
             method.asTyped[Any](using UntypedType.toTyped[Any](ctorTpe)),
@@ -5577,6 +5580,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           val moduleTpe = ownerSym.typeRef
           dstrResolveMethod(moduleTpe, methodSym).map { method =>
             val applied = List.newBuilder[DestructuredExpr.MethodCall.Applied]
+            if dstrIsSynthesizedReference(core) then applied += new DestructuredExpr.MethodCall.AppliedInstance(
+              dstrImpl(Ref(ownerSym.companionModule), lambdaParams)
+            )
             dstrBuildAppliedSteps(steps, lambdaParams, applied)
             new DestructuredExpr.MethodCall(dstrTpeOf(term), method, applied.result(), () => term)
           }
@@ -5584,6 +5590,20 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       case _ => None
     }
+  }
+
+  /** The typer drops the prefix of a member of a static object both when the member was imported (`twice(1)`) and when
+    * it inserted the member itself, e.g. as an implicit argument (`Scale.default`). Only the former was written in the
+    * source; the latter gets a zero-length span.
+    */
+  private def dstrIsSynthesizedReference(termAny: Any): Boolean = {
+    import quotes.reflect.*
+    scala.util
+      .Try {
+        val pos = termAny.asInstanceOf[Term].pos
+        pos.start == pos.end
+      }
+      .getOrElse(false)
   }
 
   private def dstrFlattenCall(termAny: Any): (Any, List[DstrCallStep]) = {
