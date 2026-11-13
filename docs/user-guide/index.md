@@ -40,23 +40,26 @@ same goes for any collection type a library teaches `IsCollection` about.
 
 ### Fits the macro system you use
 
-A Scala 3 macro extends `MacroCommonsScala3` and keeps working with `scala.quoted.Expr`/`Type` and native
-`'{ ... }`/`${ ... }`; a Scala 2 macro extends `MacroCommonsScala2` and keeps working with `c.Expr`/`c.WeakTypeTag`.
-Hearth's utilities are available on these types directly - see
-[Scala 2-only and Scala 3-only macros](basic-utilities.md#your-first-hearth-based-macro). A library that supports both
-Scala versions can write its macro logic once, against the shared `MacroCommons` API.
+A Scala 3-only macro extends `MacroCommonsScala3` and works with `scala.quoted.Expr`/`Type` and native
+`'{ ... }`/`${ ... }` (combined with Hearth's builders through
+[`passQuotes` and `withQuotes`](basic-utilities.md#passquotes-and-withquotes-scala-3-only)); a Scala 2-only macro
+extends `MacroCommonsScala2` and works with `c.Expr`/`c.WeakTypeTag`. Hearth's utilities are available on these types
+directly - see [Scala 2-only and Scala 3-only macros](basic-utilities.md#your-first-hearth-based-macro). A library that
+supports both Scala versions writes its macro logic once, against the shared `MacroCommons` API.
 
-### Mixes freely with the native API
+### The native API in platform-specific code
 
-In platform-specific code `UntypedType` *is* `c.Type`/`TypeRepr` and `UntypedExpr` *is* `c.Tree`/`Term`, and every
-`Type`/`Expr` converts to them and back. Hearth's utilities and the compiler's own API can be combined in the same
-macro, down to individual trees.
+Shared code sees only the abstract `MacroCommons` API. Platform-specific code - a Scala 2-only or Scala 3-only macro,
+or a branch of shared code that matched `MacroCommonsScala2(platformCommons)` or
+`MacroCommonsScala3(platformCommons)` - works with the compiler's own types: there `Type`/`Expr` *are* `c.WeakTypeTag`/`c.Expr` or
+`scala.quoted.Type`/`Expr`, and `UntypedType`/`UntypedExpr` *are* `c.Type`/`c.Tree` or `TypeRepr`/`Term`, so the
+compiler's API can be used where Hearth's utilities don't cover a case.
 
 ### Cross Quotes: one quote for both Scala versions
 
 [Cross Quotes](cross-quotes.md) let you write `Expr.quote`/`Expr.splice` once for Scala 2.13 and Scala 3. They are
-rewritten into native quotes (or quasiquotes on Scala 2) when your macro library is compiled, so expanding the macro
-in your users' code is as fast as with hand-written native quotes.
+rewritten into native quotes (or quasiquotes on Scala 2) once, when your macro library is compiled - not each time
+your macro is expanded in your users' code.
 
 ### A general-purpose macro library
 

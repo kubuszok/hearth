@@ -18,8 +18,9 @@ Goals:
    enums and other well-defined APIs, instead of reverse-engineering compiler trees and building them from scratch
  - **macros that are easy to get right** - error aggregation and logging with `MIO`, readable error messages that let
    your users fix their code in one go, fast compilation and well-performing generated code
- - **native API at hand** - `Type`s and `Expr`s convert to `c.Type`/`c.Tree` and `TypeRepr`/`Term` and back, so
-   Hearth's utilities and the compiler's API mix freely
+ - **native API in platform-specific code** - in Scala 2-only and Scala 3-only code (or a branch of shared code that
+   matched `MacroCommonsScala2`/`MacroCommonsScala3`) Hearth's types are the compiler's own (`c.WeakTypeTag`/`c.Expr`,
+   `scala.quoted.Type`/`Expr`), so its API can be used where Hearth doesn't cover a case
  - **integrate a library once** - with macro extensions discovered from the classpath and standard interfaces
    (`IsCollection`, `IsOption`, `IsValueType`, ...), one integration module (e.g. for Cats collections, Iron, Refined
    or newtypes) makes every Hearth-based macro that uses them support those types, with no extra imports
