@@ -23,6 +23,10 @@ object CrossQuotesEdgeCasesFixtures {
   private def testBoundedCtorClaimsImpl(using q: Quotes): Expr[Data] =
     new CrossQuotesEdgeCasesFixtures(q).testBoundedCtorClaims
 
+  inline def testBoundedCtorOutsideOfBounds: Data = ${ testBoundedCtorOutsideOfBoundsImpl }
+  private def testBoundedCtorOutsideOfBoundsImpl(using q: Quotes): Expr[Data] =
+    new CrossQuotesEdgeCasesFixtures(q).testBoundedCtorOutsideOfBounds
+
   inline def testPartialApplicationClaims: Data = ${ testPartialApplicationClaimsImpl }
   private def testPartialApplicationClaimsImpl(using q: Quotes): Expr[Data] =
     new CrossQuotesEdgeCasesFixtures(q).testPartialApplicationClaims

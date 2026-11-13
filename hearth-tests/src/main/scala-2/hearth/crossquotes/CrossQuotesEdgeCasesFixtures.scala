@@ -16,6 +16,8 @@ final private class CrossQuotesEdgeCasesFixtures(val c: blackbox.Context)
 
   def testBoundedCtorClaimsImpl: c.Expr[Data] = testBoundedCtorClaims
 
+  def testBoundedCtorOutsideOfBoundsImpl: c.Expr[Data] = testBoundedCtorOutsideOfBounds
+
   def testPartialApplicationClaimsImpl: c.Expr[Data] = testPartialApplicationClaims
 
   def testQuoteEdgeCasesImpl: c.Expr[Data] = testQuoteEdgeCases
@@ -30,6 +32,8 @@ object CrossQuotesEdgeCasesFixtures {
   def testCtorEdgeCases: Data = macro CrossQuotesEdgeCasesFixtures.testCtorEdgeCasesImpl
 
   def testBoundedCtorClaims: Data = macro CrossQuotesEdgeCasesFixtures.testBoundedCtorClaimsImpl
+
+  def testBoundedCtorOutsideOfBounds: Data = macro CrossQuotesEdgeCasesFixtures.testBoundedCtorOutsideOfBoundsImpl
 
   def testPartialApplicationClaims: Data = macro CrossQuotesEdgeCasesFixtures.testPartialApplicationClaimsImpl
 

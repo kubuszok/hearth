@@ -166,18 +166,12 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
           "apply" -> Data(UpperBoundedOption.apply(using EdgeStringType).plainPrint),
           "unapply within bounds" -> printedOrNoMatch(
             UpperBoundedOption.unapply(Type.of[Option[String]]).map(_.Underlying.plainPrint)
-          ),
-          "unapply outside of bounds" -> printedOrNoMatch(
-            UpperBoundedOption.unapply(Type.of[Option[Int]]).map(_.Underlying.plainPrint)
           )
         ),
         "Bounded" -> Data.map(
           "apply" -> Data(BoundedOption.apply(using EdgeStringType).plainPrint),
           "unapply within bounds" -> printedOrNoMatch(
             BoundedOption.unapply(Type.of[Option[String]]).map(_.Underlying.plainPrint)
-          ),
-          "unapply outside of bounds" -> printedOrNoMatch(
-            BoundedOption.unapply(Type.of[Option[Int]]).map(_.Underlying.plainPrint)
           )
         ),
         "Bounded with a constructor bounded both ways" -> Data.map(
@@ -191,6 +185,22 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
           "unapply at the upper bound" -> printedOrNoMatch(
             KennelCtor.unapply(Type.of[Kennel[Animal]]).map(_.Underlying.plainPrint)
           )
+        )
+      )
+    )
+  }
+
+  def testBoundedCtorOutsideOfBounds: Expr[Data] = {
+    val UpperBoundedOption = Type.Ctor1.UpperBounded.of[String, Option]
+    val BoundedOption = Type.Ctor1.Bounded.of[Nothing, String, Option]
+
+    Expr(
+      Data.map(
+        "UpperBounded" -> printedOrNoMatch(
+          UpperBoundedOption.unapply(Type.of[Option[Int]]).map(_.Underlying.plainPrint)
+        ),
+        "Bounded" -> printedOrNoMatch(
+          BoundedOption.unapply(Type.of[Option[Int]]).map(_.Underlying.plainPrint)
         )
       )
     )
