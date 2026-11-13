@@ -16,6 +16,16 @@ final private class EnumCaseChildrenFixtures(q: Quotes) extends MacroCommonsScal
 
   def testEnumCase[A: Type]: Expr[Data] = Expr(describe[A])
 
+  def testEnumCaseChildrenAnnotations[A: Type]: Expr[Data] =
+    Expr(Data.map(Type[A].directChildren.toList.flatMap(_.toList).map { case (name, child) =>
+      import child.Underlying as C
+      name -> annotationsOf[C]
+    }*))
+
+  def testEnumCaseAnnotations[A: Type]: Expr[Data] = Expr(annotationsOf[A])
+
+  private def annotationsOf[C: Type]: Data = Data.list(Type.annotations[C].map(ann => Data(ann.plainPrint))*)
+
   // The implicits the compiler resolves for a type are what derivations built on `directChildren` rely on.
   private def describe[C: Type]: Data = {
     given Quotes = q
@@ -45,4 +55,12 @@ object EnumCaseChildrenFixtures {
   inline def testEnumCase[A]: Data = ${ testEnumCaseImpl[A] }
   private def testEnumCaseImpl[A: Type](using q: Quotes): Expr[Data] =
     new EnumCaseChildrenFixtures(q).testEnumCase[A]
+
+  inline def testEnumCaseChildrenAnnotations[A]: Data = ${ testEnumCaseChildrenAnnotationsImpl[A] }
+  private def testEnumCaseChildrenAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new EnumCaseChildrenFixtures(q).testEnumCaseChildrenAnnotations[A]
+
+  inline def testEnumCaseAnnotations[A]: Data = ${ testEnumCaseAnnotationsImpl[A] }
+  private def testEnumCaseAnnotationsImpl[A: Type](using q: Quotes): Expr[Data] =
+    new EnumCaseChildrenFixtures(q).testEnumCaseAnnotations[A]
 }

@@ -21,5 +21,29 @@ final class EnumCaseChildrenSpec extends MacroSuite {
       testEnumCaseChildren[Color] <==> Data.map("Red" -> enumCase, "Green" -> enumCase, "Blue" -> enumCase)
       testEnumCase[Color.Red.type] <==> enumCase
     }
+
+    // Known gap: a parameterless case from `directChildren` is a `TermRef` whose type symbol is the enum class, and
+    // `Type#annotations` reads the type symbol's annotations, while the case's own are on its term symbol. Remove
+    // `.fail` once fixed.
+    test("from directChildren keep the annotations of the case, not the enum's".fail) {
+      import EnumCaseChildrenFixtures.testEnumCaseChildrenAnnotations
+      import hearth.examples.AnnotatedCasesEnum
+
+      testEnumCaseChildrenAnnotations[AnnotatedCasesEnum] <==> Data.map(
+        "AnnotatedValue" -> Data.list(Data("new hearth.examples.methods.ExampleAnnotation()")),
+        "AnnotatedClass" -> Data.list(Data("new hearth.examples.methods.ExampleAnnotation2(2)")),
+        "NotAnnotatedValue" -> Data.list()
+      )
+    }
+
+    // Known gap, for the same reason as above. Remove `.fail` once fixed.
+    test("written as a singleton type keep the annotations of the case, not the enum's".fail) {
+      import EnumCaseChildrenFixtures.testEnumCaseAnnotations
+      import hearth.examples.AnnotatedCasesEnum
+
+      testEnumCaseAnnotations[AnnotatedCasesEnum.AnnotatedValue.type] <==> Data.list(
+        Data("new hearth.examples.methods.ExampleAnnotation()")
+      )
+    }
   }
 }
