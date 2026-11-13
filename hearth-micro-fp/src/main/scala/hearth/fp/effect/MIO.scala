@@ -783,6 +783,19 @@ sealed private[effect] trait FnNec[-A, +B] {
   final def :+[C](f: (MState, MResult[B]) => MIO[C]): FnNec[A, C] = FnNec.Node(this, FnNec(f))
   final def ++[C](fbc: FnNec[B, C]): FnNec[A, C] = FnNec.Node(this, fbc)
 
+  // The queue of a long program (e.g. a traverse of 100k elements) is a tree as deep as the program is long, so the
+  // derived case class `toString` (used in timeout messages) would overflow the stack.
+  final override def toString: String = {
+    var steps = 0
+    var pending: List[FnNec[?, ?]] = List(this)
+    while (pending.nonEmpty)
+      pending.head match {
+        case FnNec.Leaf(_)        => steps += 1; pending = pending.tail
+        case FnNec.Node(fab, fbc) => pending = fab :: fbc :: pending.tail
+      }
+    s"<$steps pending steps>"
+  }
+
   /** View of FTC Queue exposing the head in a stack-safe way. */
   final def view: FnNec.View[A, B] = this match {
     case FnNec.Leaf(f)        => FnNec.View.One(f)

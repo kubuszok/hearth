@@ -677,6 +677,9 @@ lazy val hearthTests = projectMatrix
     moduleName := "hearth-tests",
     name := "hearth-tests",
     description := "Tests for hearth utilities",
+    // MIO's timeout deadline and open scopes are global (one macro expansion at a time), and MioSpec sets them, so a
+    // suite running MIO in parallel with it could time out on a deadline that is not its own.
+    Test / parallelExecution := false,
     SourceGenPlugin.autoImport.generateHearthSources := {
       val outDir = (Compile / sourceManaged).value
       val isScala3 = scalaVersion.value.startsWith("3.")
