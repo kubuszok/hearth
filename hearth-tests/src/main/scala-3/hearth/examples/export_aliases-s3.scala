@@ -13,4 +13,7 @@ object Outer {
   export hearth.examples.exportaliases.Mode
 
   type ModeAlias = hearth.examples.exportaliases.Mode
+
+  final case class ViaExport(mode: Mode)
+  final case class ViaAlias(mode: ModeAlias)
 }
