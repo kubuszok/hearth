@@ -314,7 +314,11 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
     var owner = c.internal.enclosingOwner
     val names = Set.newBuilder[String]
     while (owner != NoSymbol && !owner.isClass) {
-      if (owner.isTerm && owner.isImplicit) {
+      // A val of a class or an object is typed with its field as the owner, and only its getter is implicit. Asking
+      // for the getter would complete the class being typed, so the field is shadowed whether it is implicit or not:
+      // its own initializer cannot use it anyway.
+      val isField = owner.isTerm && !owner.isMethod && owner.owner.isClass
+      if (owner.isTerm && (owner.isImplicit || isField)) {
         val name = owner.name.decodedName.toString.trim
         if (name.nonEmpty && !name.contains("$") && !unsafeNames(name)) names += name
       }
