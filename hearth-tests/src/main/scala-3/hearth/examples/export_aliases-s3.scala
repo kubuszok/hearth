@@ -17,3 +17,23 @@ object Outer {
   final case class ViaExport(mode: Mode)
   final case class ViaAlias(mode: ModeAlias)
 }
+
+object api {
+
+  enum ParameterizedEnum(val wire: String) {
+    case A extends ParameterizedEnum("a")
+    case B extends ParameterizedEnum("b")
+  }
+
+  enum ParameterlessEnum {
+    case A, B
+  }
+}
+
+object Agents {
+  export api.ParameterizedEnum as ParameterizedEnumExport
+  export api.ParameterlessEnum as ParameterlessEnumExport
+
+  type ParameterizedEnumAlias = api.ParameterizedEnum
+  type ParameterlessEnumAlias = api.ParameterlessEnum
+}
