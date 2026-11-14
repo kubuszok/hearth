@@ -58,6 +58,17 @@ final class ExportAliasSpec extends MacroSuite {
         testChildrenConformToParent[Agents.ParameterizedEnumExport] <==> allConform
         testChildrenConformToParent[Agents.ParameterlessEnumExport] <==> allConform
       }
+
+      test("of a sealed trait through a hand-written alias conform to the alias") {
+        testChildrenConformToParent[api.SealedTrait] <==> allConform
+        testChildrenConformToParent[Agents.SealedTraitAlias] <==> allConform
+      }
+
+      // Known gap: a case object's type symbol is its module class, so `<:<` against the export alias takes the fast
+      // negative path (see the `<:<` test above). Remove `.fail` once fixed.
+      test("of a sealed trait through an export alias conform to the alias".fail) {
+        testChildrenConformToParent[Agents.SealedTraitExport] <==> allConform
+      }
     }
   }
 }

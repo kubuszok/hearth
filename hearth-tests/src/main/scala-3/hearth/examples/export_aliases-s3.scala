@@ -28,12 +28,20 @@ object api {
   enum ParameterlessEnum {
     case A, B
   }
+
+  sealed trait SealedTrait
+  object SealedTrait {
+    case object A extends SealedTrait
+    case object B extends SealedTrait
+  }
 }
 
 object Agents {
   export api.ParameterizedEnum as ParameterizedEnumExport
   export api.ParameterlessEnum as ParameterlessEnumExport
+  export api.SealedTrait as SealedTraitExport
 
   type ParameterizedEnumAlias = api.ParameterizedEnum
   type ParameterlessEnumAlias = api.ParameterlessEnum
+  type SealedTraitAlias = api.SealedTrait
 }
