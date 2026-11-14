@@ -232,11 +232,18 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     // of the class flags, so we resolve through to the underlying class. But ONLY when the dealiased symbol is a
     // non-module class: aliases of OBJECTS (e.g. `type EmptyTuple = EmptyTuple.type`, whose dealias is a module class
     // and must stay `isClass=false`/non-final), direct object types and ordinary aliases stay untouched.
-    private def classificationSymbol(instanceTpe: UntypedType): Symbol = {
+    // The type symbol of a parameterless enum case's `TermRef` is the enum class, so its flags and annotations would be
+    // the enum's; the case's own symbol is the `val`.
+    private def enumCaseValSymbol(instanceTpe: UntypedType): Option[Symbol] = {
       val term = instanceTpe.dealias.termSymbol
-      // The type symbol of a parameterless enum case's `TermRef` is the enum class, which would make the case look
-      // sealed and abstract; its own symbol is the `val`.
-      if !term.isNoSymbol && term.flags.is(Flags.Enum) && !term.flags.is(Flags.Module) then return term
+      if !term.isNoSymbol && term.flags.is(Flags.Enum) && !term.flags.is(Flags.Module) then Some(term) else None
+    }
+
+    private def classificationSymbol(instanceTpe: UntypedType): Symbol = {
+      enumCaseValSymbol(instanceTpe) match {
+        case Some(term) => return term
+        case None       => ()
+      }
       val orig = instanceTpe.typeSymbol
       val dealiased = instanceTpe.dealias.typeSymbol
       if dealiased != orig && !dealiased.isNoSymbol && dealiased.isClassDef && !dealiased.flags.is(Flags.Module)
@@ -1099,9 +1106,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     }
 
     override def annotations(untyped: UntypedType): List[UntypedExpr] =
-      untyped.typeSymbol.annotations.map(repositionAnnotation)
+      annotatedSymbol(untyped).annotations.map(repositionAnnotation)
     override def annotationTypes(untyped: UntypedType): List[UntypedType] =
-      untyped.typeSymbol.annotations.map(_.tpe)
+      annotatedSymbol(untyped).annotations.map(_.tpe)
+    private def annotatedSymbol(untyped: UntypedType): Symbol =
+      enumCaseValSymbol(untyped).getOrElse(untyped.typeSymbol)
 
     // Type-position annotations live on `AnnotatedType(underlying, annot)` wrappers (`X @Ann`), not on the type symbol;
     // stacked annotations nest (`X @A @B` => `AnnotatedType(AnnotatedType(X, @A), @B)`), so we walk them all. Dealias so
