@@ -2207,6 +2207,10 @@ Consecutive value parameter lists are merged into one `NeedsValues` entry (`def 
  * a parameter list whose types refer to an earlier parameter (`def unbox(b: Box)(t: b.T)`) starts a new
    `NeedsValues` entry, so that the earlier arguments are applied before the types it expects can be resolved.
 
+So code walking the builder chain must not assume that `Result` follows the first `ApplyValues`: keep applying
+arguments while the step is an `ApplyValues` (e.g. once for the explicit arguments and once for the `implicit`/`using`
+ones).
+
 ### Obtaining `Method`
 
 We should just call one of the methods on `Method` or `Type[A]`, depending on which kind of method we need.
