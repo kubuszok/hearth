@@ -1,24 +1,20 @@
 package hearth
 package crossquotes
 
-/** Rename to `.scala` to reproduce: on Scala 2 compiling this file crashes the compiler's backend with
-  * {{{
-  * an unexpected type representation reached the compiler backend while compiling CrossByNameSpliceCrashSpec.scala: <error>.
-  * Error while emitting CrossByNameSpliceCrashSpec.scala
-  * <error> (of class scala.reflect.internal.Types$ErrorType$)
-  * }}}
-  * Scala 3 passes. The case class has to be compiled in the same run as the expansion (here: the same file): with a
-  * case class read from a class file (e.g. [[CaseClassWithDefaults]] after an incremental compilation) the same calls
-  * compile, while in a clean build it crashes too. See [[CrossByNameSpliceSpec]] for the variants that work.
+/** Default values of a case class compiled in the same run as the expansion (here: the same file). In that run, on
+  * Scala 2, its companion's `apply$default$N` getters can still have an erroneous type, and a call to one spliced into
+  * a by-name parameter crashes the compiler's backend. See [[CrossByNameSpliceSpec]] for the other variants.
   */
 final class CrossByNameSpliceCrashSpec extends MacroSuite {
 
   test("a default getter's call spliced into a by-name parameter, upcast to Any") {
-    CrossByNameSpliceFixtures.testDefaultsSplicedIntoByName[CaseClassWithDefaultsInTheSameFile] ==> List[Any](7, Some("n"))
+    CrossByNameSpliceFixtures
+      .testDefaultsSplicedIntoByName[CaseClassWithDefaultsInTheSameFile] ==> List[Any](7, Some("n"))
   }
 
   test("a default getter's call spliced into a by-name parameter, as it is") {
-    CrossByNameSpliceFixtures.testDefaultsWithoutUpcastIntoByName[CaseClassWithDefaultsInTheSameFile] ==> List[Any](7, Some("n"))
+    CrossByNameSpliceFixtures
+      .testDefaultsWithoutUpcastIntoByName[CaseClassWithDefaultsInTheSameFile] ==> List[Any](7, Some("n"))
   }
 }
 

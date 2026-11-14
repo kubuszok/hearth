@@ -1,14 +1,8 @@
 package hearth
 package crossquotes
 
-/** Fixtures are in [[CrossByNameSpliceFixturesImpl]].
-  *
-  * Known gap (Scala 2): splicing the call of a case class' default getter (from `Parameter.defaultValue`) into a
-  * by-name parameter, when the case class is compiled in the same run, compiles, but crashes the compiler's backend
-  * ("an unexpected type representation reached the compiler backend ... <error>") while emitting the file expanding the
-  * macro. It cannot be an expected failure (the whole test file stops compiling), so it lives in
-  * `CrossByNameSpliceCrashSpec.scala.disabled`: rename it to `.scala` to reproduce it. The tests below are the variants
-  * that work.
+/** Fixtures are in [[CrossByNameSpliceFixturesImpl]]. A case class compiled in the same run as the expansion is covered
+  * by [[CrossByNameSpliceCrashSpec]].
   */
 final class CrossByNameSpliceSpec extends MacroSuite {
 
