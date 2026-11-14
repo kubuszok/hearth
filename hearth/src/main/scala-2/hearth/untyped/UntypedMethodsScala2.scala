@@ -779,11 +779,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
         }
 
         val possibleDefaultNames = names.map(defaultValueMethodName(_, param.index + 1))
-        val defaultMethod = decls
-          .to(List)
-          .collectFirst {
-            case method if possibleDefaultNames.contains(method.name.decodedName.toString) => method.asMethod
-          }
+        // Looked up in the order of `possibleDefaultNames`, not of the declarations: in the run that compiles a case
+        // class its companion's `apply$default$N` getters can still have an erroneous type, while the constructor's own
+        // `<init>$default$N` is the one the compiler itself calls.
+        val declsByName = decls.to(List).map(method => method.name.decodedName.toString -> method).toMap
+        val defaultMethod = possibleDefaultNames
+          .collectFirst(declsByName)
+          .map(_.asMethod)
           .getOrElse {
             // $COVERAGE-OFF$ Should never happen unless someone mess around with type-level representation
             hearthAssertionFailed(
