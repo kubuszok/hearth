@@ -229,7 +229,13 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       // A tree built with quasiquotes (e.g. by an `ExprCodec.toExpr`) is untyped, so it has no symbols to evaluate.
       def eval(tree: Tree, overrides: Overrides): Result = {
         val typedTree = if (tree.tpe != null) tree else scala.util.Try(c.typecheck(tree)).getOrElse(tree)
-        evalWithLocals(typedTree, Map.empty, overrides)
+        // Listing the methods of a class fails with a `LinkageError` when one of their signatures mentions a class that
+        // cannot be loaded.
+        try evalWithLocals(typedTree, Map.empty, overrides)
+        catch {
+          case e: LinkageError =>
+            Left(NonEmptyVector.one(s"Cannot semi-evaluate ${showCode(typedTree)}: reflection failed with $e"))
+        }
       }
 
       private def evalWithLocals(tree: Tree, locals: Map[Symbol, Any], overrides: Overrides): Result = {

@@ -47,10 +47,7 @@ final class ExprsScala3Spec extends MacroSuite {
       )
     }
 
-    // Known gap: listing the methods of `Holder$` to call the default getter throws `NoClassDefFoundError`, which escapes
-    // `semiEval` (and the macro). Without the fixture catching it, the compiler suspends this file and later fails with
-    // "ExprsScala3Spec is already defined". Remove `.fail` once fixed.
-    test("does not throw when the class of the object owning a default argument cannot be reflected on".fail) {
+    test("does not throw when the class of the object owning a default argument cannot be reflected on") {
       examples.brokenaccessors.Holder.semiEvalOfDefaults(size = 3) <==> Data.map("thrown" -> Data("<nothing>"))
     }
 
