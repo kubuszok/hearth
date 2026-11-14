@@ -24,5 +24,19 @@ final class ExportAliasSpec extends MacroSuite {
         testSubtyping[Mode, Outer.Mode] <==> sameType
       }
     }
+
+    group("for Method build()") {
+      import ExportAliasFixtures.testConstructWith
+
+      test("accepts an argument of the class a hand-written alias parameter type stands for") {
+        testConstructWith[Outer.ViaAlias, Mode](Mode.B) <==> Data("ViaAlias(B)")
+      }
+
+      // Known gap: `build()` checks `argument <:< parameter`, which is false when the parameter's type is an export
+      // alias (see the `<:<` test above). Remove `.fail` once fixed.
+      test("accepts an argument of the class an export alias parameter type stands for".fail) {
+        testConstructWith[Outer.ViaExport, Mode](Mode.B) <==> Data("ViaExport(B)")
+      }
+    }
   }
 }
