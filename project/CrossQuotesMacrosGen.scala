@@ -197,12 +197,16 @@ object CrossQuotesMacrosGen {
     sb ++= s"      $tq\n"
     // `baseType` finds the constructor by its symbol alone, so `first.Inner[Int]` would match a constructor of
     // `second.Inner` - the prefix has to be compared when the constructor is a member of a class. A member of an
-    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`).
+    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`). `baseType`
+    // uses the dealiased symbol, so the owner is checked on it: an alias declared in a trait may stand for a static type.
     sb ++= s"      val prefixMatchesDef = q${tq}\n"
-    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = HKT.typeConstructor match {\n"
-    sb ++= s"        case TypeRef(hktPre, sym, _) if sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass =>\n"
-    sb ++= s"          pre =:= hktPre\n"
-    sb ++= s"        case _ => true\n"
+    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = {\n"
+    sb ++= s"        val sym = HKT.typeSymbol\n"
+    sb ++= s"        if (sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass) HKT.typeConstructor match {\n"
+    sb ++= s"          case TypeRef(hktPre, hktSym, _) if hktSym == sym => pre =:= hktPre\n"
+    sb ++= s"          case _ => true\n"
+    sb ++= s"        }\n"
+    sb ++= s"        else true\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
     sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"
@@ -337,12 +341,16 @@ object CrossQuotesMacrosGen {
     sb ++= s"      $tq\n"
     // `baseType` finds the constructor by its symbol alone, so `first.Inner[Int]` would match a constructor of
     // `second.Inner` - the prefix has to be compared when the constructor is a member of a class. A member of an
-    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`).
+    // object or a package is static, and is often reached through an alias with another prefix (`scala.Seq`). `baseType`
+    // uses the dealiased symbol, so the owner is checked on it: an alias declared in a trait may stand for a static type.
     sb ++= s"      val prefixMatchesDef = q${tq}\n"
-    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = HKT.typeConstructor match {\n"
-    sb ++= s"        case TypeRef(hktPre, sym, _) if sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass =>\n"
-    sb ++= s"          pre =:= hktPre\n"
-    sb ++= s"        case _ => true\n"
+    sb ++= s"      private def prefixMatches(pre: $$ctx.Type): Boolean = {\n"
+    sb ++= s"        val sym = HKT.typeSymbol\n"
+    sb ++= s"        if (sym.owner.isClass && !sym.owner.isModuleClass && !sym.owner.isPackageClass) HKT.typeConstructor match {\n"
+    sb ++= s"          case TypeRef(hktPre, hktSym, _) if hktSym == sym => pre =:= hktPre\n"
+    sb ++= s"          case _ => true\n"
+    sb ++= s"        }\n"
+    sb ++= s"        else true\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
     sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"

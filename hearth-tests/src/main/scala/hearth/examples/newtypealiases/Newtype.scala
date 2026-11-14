@@ -9,5 +9,5 @@ trait AliasesInTrait {
 object Newtype {
   type Base
   trait Tag extends Any
-  type Type[+A] <: Base with Tag
+  type Type[+A] <: hearth.examples.intersections.And[Base, Tag]
 }
