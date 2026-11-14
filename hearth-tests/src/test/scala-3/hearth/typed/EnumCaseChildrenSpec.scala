@@ -22,10 +22,7 @@ final class EnumCaseChildrenSpec extends MacroSuite {
       testEnumCase[Color.Red.type] <==> enumCase
     }
 
-    // Known gap: a parameterless case from `directChildren` is a `TermRef` whose type symbol is the enum class, and
-    // `Type#annotations` reads the type symbol's annotations, while the case's own are on its term symbol. Remove
-    // `.fail` once fixed.
-    test("from directChildren keep the annotations of the case, not the enum's".fail) {
+    test("from directChildren keep the annotations of the case, not the enum's") {
       import EnumCaseChildrenFixtures.testEnumCaseChildrenAnnotations
       import hearth.examples.AnnotatedCasesEnum
 
@@ -36,8 +33,7 @@ final class EnumCaseChildrenSpec extends MacroSuite {
       )
     }
 
-    // Known gap, for the same reason as above. Remove `.fail` once fixed.
-    test("written as a singleton type keep the annotations of the case, not the enum's".fail) {
+    test("written as a singleton type keep the annotations of the case, not the enum's") {
       import EnumCaseChildrenFixtures.testEnumCaseAnnotations
       import hearth.examples.AnnotatedCasesEnum
 
