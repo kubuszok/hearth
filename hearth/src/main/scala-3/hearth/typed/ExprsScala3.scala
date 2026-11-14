@@ -272,7 +272,19 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
 
       private def throwErrors(errors: NonEmptyVector[String]): Nothing = throw SemiEvalErrors(errors)
 
-      def eval(term: Term, overrides: Overrides): Result = evalWithLocals(term, Map.empty, overrides)
+      // Listing the methods of a class fails with a `LinkageError` when one of their signatures mentions a class that
+      // cannot be loaded (e.g. an inline accessor taking a package as a parameter). Escaping the macro, it would make the
+      // compiler suspend the whole compilation unit as if it depended on a class compiled in the same run.
+      def eval(term: Term, overrides: Overrides): Result =
+        try evalWithLocals(term, Map.empty, overrides)
+        catch {
+          case e: LinkageError =>
+            Left(
+              NonEmptyVector.one(
+                s"Cannot semi-evaluate ${term.show(using Printer.TreeCode)}: reflection failed with $e"
+              )
+            )
+        }
 
       private def evalWithLocals(term: Term, locals: Map[Symbol, Any], overrides: Overrides): Result = {
         if overrides != null then {

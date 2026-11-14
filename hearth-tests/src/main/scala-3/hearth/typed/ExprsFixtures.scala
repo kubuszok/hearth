@@ -16,7 +16,7 @@ final private class ExprsFixtures(q: Quotes) extends MacroCommonsScala3(using q)
         val _ = expr.semiEval
         "<nothing>"
       } catch {
-        case throwable: Throwable => throwable.getClass.getName
+        case thrown @ (_: LinkageError | _: Exception) => thrown.getClass.getName
       }
     Expr(Data.map("thrown" -> Data(thrown)))
   }
