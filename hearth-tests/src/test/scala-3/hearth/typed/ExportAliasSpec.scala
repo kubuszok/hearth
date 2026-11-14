@@ -38,5 +38,26 @@ final class ExportAliasSpec extends MacroSuite {
         testConstructWith[Outer.ViaExport, Mode](Mode.B) <==> Data("ViaExport(B)")
       }
     }
+
+    group("for directChildren") {
+      import ExportAliasFixtures.testChildrenConformToParent
+
+      val allConform = Data.map("A" -> Data(true), "B" -> Data(true))
+
+      test("of an enum through a hand-written alias conform to the alias") {
+        testChildrenConformToParent[api.ParameterizedEnum] <==> allConform
+        testChildrenConformToParent[Agents.ParameterizedEnumAlias] <==> allConform
+        testChildrenConformToParent[api.ParameterlessEnum] <==> allConform
+        testChildrenConformToParent[Agents.ParameterlessEnumAlias] <==> allConform
+      }
+
+      // Known gap: a case from `directChildren` is a `TermRef` whose type symbol is the enum class, so `<:<` against
+      // the export alias takes the fast negative path (see the `<:<` test above). Derivations that keep only the
+      // children conforming to the parent, to drop GADT cases, drop them all. Remove `.fail` once fixed.
+      test("of an enum through an export alias conform to the alias".fail) {
+        testChildrenConformToParent[Agents.ParameterizedEnumExport] <==> allConform
+        testChildrenConformToParent[Agents.ParameterlessEnumExport] <==> allConform
+      }
+    }
   }
 }

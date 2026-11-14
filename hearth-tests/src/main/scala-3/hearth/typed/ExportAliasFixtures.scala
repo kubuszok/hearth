@@ -31,6 +31,16 @@ final private class ExportAliasFixtures(q: Quotes) extends MacroCommonsScala3(us
           case Left(error) => Expr(Data(s"LEFT: ${removeAnsiColors(error)}"))
         }
     }
+
+  def testChildrenConformToParent[A: Type]: Expr[Data] =
+    Type[A].directChildren match {
+      case None           => Expr(Data("no direct children"))
+      case Some(children) =>
+        Expr(Data.map(children.toList.map { case (name, child) =>
+          import child.Underlying as C
+          name -> Data(Type[C] <:< Type[A])
+        }*))
+    }
 }
 
 object ExportAliasFixtures {
@@ -42,4 +52,8 @@ object ExportAliasFixtures {
   inline def testConstructWith[A, Arg](inline arg: Arg): Data = ${ testConstructWithImpl[A, Arg]('arg) }
   private def testConstructWithImpl[A: Type, Arg: Type](arg: Expr[Arg])(using q: Quotes): Expr[Data] =
     new ExportAliasFixtures(q).testConstructWith[A, Arg](arg)
+
+  inline def testChildrenConformToParent[A]: Data = ${ testChildrenConformToParentImpl[A] }
+  private def testChildrenConformToParentImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ExportAliasFixtures(q).testChildrenConformToParent[A]
 }
