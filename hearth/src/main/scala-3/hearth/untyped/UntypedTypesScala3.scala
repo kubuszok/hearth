@@ -671,9 +671,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       val dealiased = subtype.dealias
       val subSym = dealiased.typeSymbol
       if !subSym.isNoSymbol && subSym.isClassDef && dealiased.typeArgs.isEmpty then {
-        val supSym = supertype.typeSymbol
+        // An alias has a symbol of its own, and an `export` alias's symbol is final, so the flags are read from the type
+        // it stands for.
+        val supDealiased = supertype.dealias
+        val supSym = supDealiased.typeSymbol
         if subSym != supSym && !supSym.isNoSymbol &&
-        supSym.flags.is(Flags.Final) && supertype.typeArgs.isEmpty &&
+        supSym.flags.is(Flags.Final) && supDealiased.typeArgs.isEmpty &&
         subSym != defn.NothingClass && subSym != defn.NullClass then return false
       }
       var inner = subtypeCache.get(subtype)

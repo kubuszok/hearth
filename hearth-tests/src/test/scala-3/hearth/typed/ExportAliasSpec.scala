@@ -17,10 +17,7 @@ final class ExportAliasSpec extends MacroSuite {
         testSubtyping[Mode, Outer.ModeAlias] <==> sameType
       }
 
-      // Known gap: the fast negative path of `<:<` reads the flags of the supertype's `typeSymbol` without dealiasing
-      // it, and the symbol of an export alias is final, so any other class is taken to be unrelated to it. Remove
-      // `.fail` once fixed.
-      test("an export alias is the same type as the class it stands for".fail) {
+      test("an export alias is the same type as the class it stands for") {
         testSubtyping[Mode, Outer.Mode] <==> sameType
       }
     }
@@ -32,9 +29,7 @@ final class ExportAliasSpec extends MacroSuite {
         testConstructWith[Outer.ViaAlias, Mode](Mode.B) <==> Data("ViaAlias(B)")
       }
 
-      // Known gap: `build()` checks `argument <:< parameter`, which is false when the parameter's type is an export
-      // alias (see the `<:<` test above). Remove `.fail` once fixed.
-      test("accepts an argument of the class an export alias parameter type stands for".fail) {
+      test("accepts an argument of the class an export alias parameter type stands for") {
         testConstructWith[Outer.ViaExport, Mode](Mode.B) <==> Data("ViaExport(B)")
       }
     }
@@ -51,10 +46,7 @@ final class ExportAliasSpec extends MacroSuite {
         testChildrenConformToParent[Agents.ParameterlessEnumAlias] <==> allConform
       }
 
-      // Known gap: a case from `directChildren` is a `TermRef` whose type symbol is the enum class, so `<:<` against
-      // the export alias takes the fast negative path (see the `<:<` test above). Derivations that keep only the
-      // children conforming to the parent, to drop GADT cases, drop them all. Remove `.fail` once fixed.
-      test("of an enum through an export alias conform to the alias".fail) {
+      test("of an enum through an export alias conform to the alias") {
         testChildrenConformToParent[Agents.ParameterizedEnumExport] <==> allConform
         testChildrenConformToParent[Agents.ParameterlessEnumExport] <==> allConform
       }
@@ -64,9 +56,7 @@ final class ExportAliasSpec extends MacroSuite {
         testChildrenConformToParent[Agents.SealedTraitAlias] <==> allConform
       }
 
-      // Known gap: a case object's type symbol is its module class, so `<:<` against the export alias takes the fast
-      // negative path (see the `<:<` test above). Remove `.fail` once fixed.
-      test("of a sealed trait through an export alias conform to the alias".fail) {
+      test("of a sealed trait through an export alias conform to the alias") {
         testChildrenConformToParent[Agents.SealedTraitExport] <==> allConform
       }
     }
