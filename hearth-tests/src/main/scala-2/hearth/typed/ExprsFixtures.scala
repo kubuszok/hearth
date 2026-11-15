@@ -56,6 +56,8 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
 
   def testValDefsCreateAndUseImpl: c.Expr[Data] = testValDefsCreateAndUse
   def testLambdaInsideValInsideQuotedLambdaImpl: c.Expr[Data] = testLambdaInsideValInsideQuotedLambda
+  def testNestedValDefsInsideLambdaBuilderImpl: c.Expr[Data] = testNestedValDefsInsideLambdaBuilder
+  def testValDefsNextToQuotedValsInsideLambdaBuilderImpl: c.Expr[Data] = testValDefsNextToQuotedValsInsideLambdaBuilder
   def testVarOfLiteralTypeFromCodecImpl: c.Expr[Data] = testVarOfLiteralTypeFromCodec
   def testLambdasReturningTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] =
     testLambdasReturningType[A](value)
@@ -209,6 +211,9 @@ object ExprsFixtures {
 
   def testValDefsCreateAndUse: Data = macro ExprsFixtures.testValDefsCreateAndUseImpl
   def testLambdaInsideValInsideQuotedLambda: Data = macro ExprsFixtures.testLambdaInsideValInsideQuotedLambdaImpl
+  def testNestedValDefsInsideLambdaBuilder: Data = macro ExprsFixtures.testNestedValDefsInsideLambdaBuilderImpl
+  def testValDefsNextToQuotedValsInsideLambdaBuilder: Data =
+    macro ExprsFixtures.testValDefsNextToQuotedValsInsideLambdaBuilderImpl
   def testVarOfLiteralTypeFromCodec: Data = macro ExprsFixtures.testVarOfLiteralTypeFromCodecImpl
   def testLambdasReturningType[A](value: A): Data = macro ExprsFixtures.testLambdasReturningTypeImpl[A]
   def testValDefsOfType[A, B](value: A, widened: B): Data = macro ExprsFixtures.testValDefsOfTypeImpl[A, B]

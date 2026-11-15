@@ -382,6 +382,36 @@ trait ExprsFixturesImpl { this: MacroCommons =>
   // owned by the lambda, not by the macro entry, or `-Xcheck-macros` aborts with "Block contains definition with
   // different owners". This simple shape passes; the same failure is known to need a fuller MIO.scoped/ValDefsCache/
   // recursive derivation structure to trip, which has no minimal reproduction yet.
+  def testNestedValDefsInsideLambdaBuilder: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    def attempt(remaining: List[Int], previous: Expr[Int]): Expr[Int] = remaining match {
+      case n :: rest =>
+        ValDefs.createVal[Int](Expr.quote(Expr.splice(previous) + Expr.splice(Expr(n))), "attempt").use { result =>
+          Expr.quote(if (Expr.splice(result) > 100) Expr.splice(result) else Expr.splice(attempt(rest, result)))
+        }
+      case Nil => previous
+    }
+    val fn = LambdaBuilder.of1[Int]("start").map(start => attempt(List(1, 2, 3), start)).build[Int]
+    Expr.quote(Data(Expr.splice(fn).apply(10)))
+  }
+
+  def testValDefsNextToQuotedValsInsideLambdaBuilder: Expr[Data] = {
+    implicit val intType: Type[Int] = IntType
+    implicit val listIntType: Type[List[Int]] = Type.of[List[Int]]
+    def bindAll(remaining: List[Expr[Int]], bound: List[Expr[Int]]): Expr[List[Int]] = remaining match {
+      case r :: rest => ValDefs.createVal[Int](r, "bound").use(ref => bindAll(rest, ref :: bound))
+      case Nil       =>
+        bound.reverse.foldRight(Expr.quote(List.empty[Int])) { (r, acc) =>
+          Expr.quote(Expr.splice(r) :: Expr.splice(acc))
+        }
+    }
+    val fn = LambdaBuilder
+      .of1[Int]("start")
+      .map(start => bindAll(List(start, Expr.quote(Expr.splice(start) + 1)), Nil))
+      .build[List[Int]]
+    Expr.quote(Data(Expr.splice(fn).apply(10).mkString(",")))
+  }
+
   def testLambdaInsideValInsideQuotedLambda: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     implicit val stringType: Type[String] = StringType
