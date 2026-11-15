@@ -55,6 +55,14 @@ final class StdExtensionsSpec extends MacroSuite {
           ),
           "building" -> Data("List(one)")
         )
+        testIsCollection(scala.collection.immutable.::("one", List("two", "three"))) <==> Data.map(
+          "iteration" -> Data.list(
+            Data("one"),
+            Data("two"),
+            Data("three")
+          ),
+          "building" -> Data("List(one)")
+        )
         testIsCollection(LazyList("one", "two", "three")) <==> Data.map(
           "iteration" -> Data.list(
             Data("one"),
