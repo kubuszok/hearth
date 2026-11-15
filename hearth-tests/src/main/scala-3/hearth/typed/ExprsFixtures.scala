@@ -141,6 +141,16 @@ object ExprsFixtures {
   private def testVarOfLiteralTypeFromCodecImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVarOfLiteralTypeFromCodec
 
+  inline def testNestedValDefsInsideLambdaBuilder: Data = ${ testNestedValDefsInsideLambdaBuilderImpl }
+  private def testNestedValDefsInsideLambdaBuilderImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testNestedValDefsInsideLambdaBuilder
+
+  inline def testValDefsNextToQuotedValsInsideLambdaBuilder: Data = ${
+    testValDefsNextToQuotedValsInsideLambdaBuilderImpl
+  }
+  private def testValDefsNextToQuotedValsInsideLambdaBuilderImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsNextToQuotedValsInsideLambdaBuilder
+
   inline def testLambdaInsideValInsideQuotedLambda: Data = ${ testLambdaInsideValInsideQuotedLambdaImpl }
   private def testLambdaInsideValInsideQuotedLambdaImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testLambdaInsideValInsideQuotedLambda

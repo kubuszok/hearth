@@ -643,6 +643,18 @@ final class ExprsSpec extends MacroSuite {
         testValDefsOfType["2", String]("2", runtimeString()) <==> expected
       }
 
+      test("ValDefs vals created inside splices of a quote in a LambdaBuilder body are owned by the lambda") {
+        import ExprsFixtures.testNestedValDefsInsideLambdaBuilder
+
+        testNestedValDefsInsideLambdaBuilder <==> Data(16)
+      }
+
+      test("ValDefs vals next to vals defined by a quote in a LambdaBuilder body are owned by the lambda") {
+        import ExprsFixtures.testValDefsNextToQuotedValsInsideLambdaBuilder
+
+        testValDefsNextToQuotedValsInsideLambdaBuilder <==> Data("10,11")
+      }
+
       test("a LambdaBuilder lambda spliced into a local val of a quoted lambda is owned by that val") {
         import ExprsFixtures.testLambdaInsideValInsideQuotedLambda
 
