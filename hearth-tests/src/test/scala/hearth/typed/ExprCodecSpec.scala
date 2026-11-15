@@ -110,7 +110,7 @@ final class ExprCodecSpec extends MacroSuite {
           "decoded" -> Data("DataHolder(test,hello)"),
           "reLifted" -> caseClassReLifted(
             s2 =
-              "new hearth.examples.expr_codecs.DataHolder((\"test\": scala.Predef.String), hearth.data.Data.apply(\"hello\"))",
+              "new hearth.examples.expr_codecs.DataHolder((\"test\": scala.Predef.String), _root_.hearth.data.Data.apply(\"hello\"))",
             s3 = "new hearth.examples.expr_codecs.DataHolder(\"test\", hearth.data.Data$package.Data.apply(\"hello\"))"
           )
         )
