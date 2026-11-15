@@ -658,7 +658,10 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     Expr(
       Data.map(
         "declarationWhenAvailable" -> names(ChildrenOrder.DeclarationWhenAvailable),
-        "byName" -> names(ChildrenOrder.ByName)
+        "byName" -> names(ChildrenOrder.ByName),
+        "byName (extension method)" -> Type[A]
+          .directChildrenInOrder(ChildrenOrder.ByName)
+          .fold(Data("<no children>"))(children => Data(children.map(c => Data(c._1))))
       )
     )
   }

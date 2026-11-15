@@ -734,7 +734,8 @@ final class ClassesSpec extends MacroSuite {
       test("directChildrenInOrder of a sealed type compiled in the same run") {
         testChildrenInOrder[ShapeFromTheSameRun] <==> Data.map(
           "declarationWhenAvailable" -> Data.list(Data("Circle"), Data("Rectangle"), Data("NoShape")),
-          "byName" -> Data.list(Data("Circle"), Data("NoShape"), Data("Rectangle"))
+          "byName" -> Data.list(Data("Circle"), Data("NoShape"), Data("Rectangle")),
+          "byName (extension method)" -> Data.list(Data("Circle"), Data("NoShape"), Data("Rectangle"))
         )
       }
 
@@ -744,7 +745,8 @@ final class ClassesSpec extends MacroSuite {
           "declarationWhenAvailable" ->
             (if (LanguageVersion.byHearth.isScala3) Data.list(Data("Circle"), Data("Rectangle"), Data("NoShape"))
              else byName),
-          "byName" -> byName
+          "byName" -> byName,
+          "byName (extension method)" -> byName
         )
       }
 

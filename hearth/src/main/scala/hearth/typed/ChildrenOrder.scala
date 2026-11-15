@@ -18,8 +18,8 @@ object ChildrenOrder {
     */
   case object DeclarationWhenAvailable extends ChildrenOrder
 
-  /** Sorted by the subtype's name: its simple name (in natural order, so `Item2` comes before `Item10`), then its
-    * full name.
+  /** Sorted by the subtype's name: its simple name (in natural order, so `Item2` comes before `Item10`), then its full
+    * name.
     *
     * The same on Scala 2 and Scala 3, whether the sealed type was compiled in the same run or read from class files.
     */
