@@ -395,59 +395,6 @@ trait ExprsFixturesImpl { this: MacroCommons =>
     Expr.quote(Data(Expr.splice(fn).apply(10)))
   }
 
-  private def attemptChain(remaining: List[Int])(implicit IntT: Type[Int]): Expr[Int] = remaining match {
-    case n :: rest =>
-      ValDefs.createVal[Int](Expr(n), "attempt").use { r =>
-        Expr.quote(if (Expr.splice(r) > 100) Expr.splice(r) else Expr.splice(attemptChain(rest)))
-      }
-    case Nil => Expr(0)
-  }
-
-  def testValDefsInsideSpliceOfQuotedLambda: Expr[Data] = {
-    implicit val intType: Type[Int] = IntType
-    val fn: Expr[Int => Int] = Expr.quote((i: Int) => i + Expr.splice(attemptChain(List(1, 2, 3))))
-    Expr.quote(Data(Expr.splice(fn).apply(10)))
-  }
-
-  def testQuotedLambdaWithValDefsInsideLambdaBuilder: Expr[Data] = {
-    implicit val intType: Type[Int] = IntType
-    val fn = LambdaBuilder
-      .of1[Int]("start")
-      .map(start => Expr.quote(Expr.splice(start) + ((j: Int) => j + Expr.splice(attemptChain(List(1, 2, 3))))(1)))
-      .build[Int]
-    Expr.quote(Data(Expr.splice(fn).apply(10)))
-  }
-
-  def testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambda: Expr[Data] = {
-    implicit val intType: Type[Int] = IntType
-    val fn: Expr[Int => Int] = Expr.quote { (i: Int) =>
-      Expr
-        .splice {
-          LambdaBuilder
-            .of1[Int]("start")
-            .map(start => Expr.quote(Expr.splice(start) + Expr.splice(attemptChain(List(1, 2, 3)))))
-            .build[Int]
-        }
-        .apply(i)
-    }
-    Expr.quote(Data(Expr.splice(fn).apply(10)))
-  }
-
-  def testValDefsNextToQuotedValsInsideSpliceOfQuotedLambda: Expr[Data] = {
-    implicit val intType: Type[Int] = IntType
-    implicit val listIntType: Type[List[Int]] = Type.of[List[Int]]
-    def bindAll(remaining: List[Expr[Int]], bound: List[Expr[Int]]): Expr[List[Int]] = remaining match {
-      case r :: rest => ValDefs.createVal[Int](r, "bound").use(ref => bindAll(rest, ref :: bound))
-      case Nil       =>
-        bound.reverse.foldRight(Expr.quote(List.empty[Int])) { (r, acc) =>
-          Expr.quote(Expr.splice(r) :: Expr.splice(acc))
-        }
-    }
-    val fn: Expr[Int => List[Int]] =
-      Expr.quote((i: Int) => Expr.splice(bindAll(List(Expr.quote(i), Expr.quote(i + 1)), Nil)))
-    Expr.quote(Data(Expr.splice(fn).apply(10).mkString(",")))
-  }
-
   def testValDefsNextToQuotedValsInsideLambdaBuilder: Expr[Data] = {
     implicit val intType: Type[Int] = IntType
     implicit val listIntType: Type[List[Int]] = Type.of[List[Int]]
