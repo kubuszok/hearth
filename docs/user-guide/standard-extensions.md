@@ -499,6 +499,8 @@ but also out-of-the-box supports types what are not Scala collections, but we wa
  - `Array`s
  - `IArray`s (immutable arrays from Scala 3)
  - Java collections
+ - `scala.collection.immutable.::` (a non-empty `List`, since 0.4.5) - it has no `Factory`, so the elements are
+   collected into a `List`, and its smart constructor fails for an empty one
 
 with a possibility to support even more types, with the same API, just by adding a macro extension implementation to the class-path!
 
