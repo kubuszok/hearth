@@ -141,6 +141,32 @@ object ExprsFixtures {
   private def testVarOfLiteralTypeFromCodecImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testVarOfLiteralTypeFromCodec
 
+  inline def testQuotedLambdaWithValDefsInsideLambdaBuilder: Data = ${
+    testQuotedLambdaWithValDefsInsideLambdaBuilderImpl
+  }
+  private def testQuotedLambdaWithValDefsInsideLambdaBuilderImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testQuotedLambdaWithValDefsInsideLambdaBuilder
+
+  inline def testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambda: Data = ${
+    testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambdaImpl
+  }
+  private def testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambda
+
+  inline def testMatchCaseChainInsideSpliceOfQuotedLambda: Data = ${ testMatchCaseChainInsideSpliceOfQuotedLambdaImpl }
+  private def testMatchCaseChainInsideSpliceOfQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testMatchCaseChainInsideSpliceOfQuotedLambda
+
+  inline def testValDefsInsideSpliceOfQuotedLambda: Data = ${ testValDefsInsideSpliceOfQuotedLambdaImpl }
+  private def testValDefsInsideSpliceOfQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsInsideSpliceOfQuotedLambda
+
+  inline def testValDefsNextToQuotedValsInsideSpliceOfQuotedLambda: Data = ${
+    testValDefsNextToQuotedValsInsideSpliceOfQuotedLambdaImpl
+  }
+  private def testValDefsNextToQuotedValsInsideSpliceOfQuotedLambdaImpl(using q: Quotes): Expr[Data] =
+    new ExprsFixtures(q).testValDefsNextToQuotedValsInsideSpliceOfQuotedLambda
+
   inline def testNestedValDefsInsideLambdaBuilder: Data = ${ testNestedValDefsInsideLambdaBuilderImpl }
   private def testNestedValDefsInsideLambdaBuilderImpl(using q: Quotes): Expr[Data] =
     new ExprsFixtures(q).testNestedValDefsInsideLambdaBuilder
