@@ -214,6 +214,25 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
           name -> subtype.asTyped[A].as_??<:[A]
         })
 
+    /** Like [[directChildrenList]], but in the given [[ChildrenOrder]].
+      *
+      * [[directChildrenList]] keeps the order the compiler reports ([[ChildrenOrder.DeclarationWhenAvailable]]), which
+      * on Scala 2 depends on whether the sealed type was compiled in the same run. [[ChildrenOrder.ByName]] gives the
+      * same order in every build and on both Scala versions.
+      *
+      * @since 0.4.5
+      */
+    final def directChildrenInOrder[A: Type](order: ChildrenOrder): Option[List[(String, ??<:[A])]] =
+      directChildrenList[A].map { children =>
+        order match {
+          case ChildrenOrder.DeclarationWhenAvailable => children
+          case ChildrenOrder.ByName                   =>
+            children.sortBy { case (name, subtype) => (name, subtype.Underlying.plainPrint) }(
+              Ordering.Tuple2(hearth.fp.NaturalLanguageOrdering.caseSensitive, Ordering.String)
+            )
+        }
+      }
+
     /** Recursively flattened leaf subtypes of a sealed hierarchy or `enum` `A` as a `NonEmptyMap`, or `None` when `A`
       * is not exhaustively decomposable.
       *
@@ -1260,6 +1279,8 @@ trait Types extends TypeConstructors with TypesCrossQuotes with TypesCompat { th
     def pseudoCompanionObject: Option[Expr_??] = Type.pseudoCompanionObject(using tpe)
 
     def directChildren: Option[ListMap[String, ??<:[A]]] = Type.directChildren(using tpe)
+    def directChildrenInOrder(order: ChildrenOrder): Option[List[(String, ??<:[A])]] =
+      Type.directChildrenInOrder(order)(using tpe)
     def exhaustiveChildren: Option[NonEmptyMap[String, ??<:[A]]] = Type.exhaustiveChildren(using tpe)
 
     def annotations: List[Expr_??] = Type.annotations(using tpe)

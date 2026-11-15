@@ -652,6 +652,17 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   )
 
+  def testChildrenInOrder[A: Type]: Expr[Data] = {
+    def names(order: ChildrenOrder): Data =
+      Type.directChildrenInOrder[A](order).fold(Data("<no children>"))(children => Data(children.map(c => Data(c._1))))
+    Expr(
+      Data.map(
+        "declarationWhenAvailable" -> names(ChildrenOrder.DeclarationWhenAvailable),
+        "byName" -> names(ChildrenOrder.ByName)
+      )
+    )
+  }
+
   /** Every branch prints the child type it was generated for and the matched value, so the runtime result shows which
     * case caught the value.
     */

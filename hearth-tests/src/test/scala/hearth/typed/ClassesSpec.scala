@@ -701,7 +701,7 @@ final class ClassesSpec extends MacroSuite {
     }
 
     group("Enum[A] children") {
-      import ClassesFixtures.testEnumChildren
+      import ClassesFixtures.{testChildrenInOrder, testEnumChildren}
 
       test("for a sealed abstract class") {
         testEnumChildren[examples.classesedge.SealedAbstractShape] <==> Data.map(
@@ -717,16 +717,34 @@ final class ClassesSpec extends MacroSuite {
       }
 
       test("for a nested sealed hierarchy: direct children keep the nested trait, exhaustive children flatten it") {
+        // `Animal` is read from class files: Scala 3 keeps the declaration order, while Scala 2 class files store the
+        // children sorted by name.
+        val fish = Data("Fish: hearth.examples.classesedge.Animal.Fish")
+        val mammal = Data("Mammal: hearth.examples.classesedge.Animal.Mammal")
+        val cat = Data("Cat: hearth.examples.classesedge.Animal.Cat.type")
+        val dog = Data("Dog: hearth.examples.classesedge.Animal.Dog")
         testEnumChildren[examples.classesedge.Animal] <==> Data.map(
-          "directChildren" -> Data.list(
-            Data("Fish: hearth.examples.classesedge.Animal.Fish"),
-            Data("Mammal: hearth.examples.classesedge.Animal.Mammal")
-          ),
-          "exhaustiveChildren" -> Data.list(
-            Data("Fish: hearth.examples.classesedge.Animal.Fish"),
-            Data("Cat: hearth.examples.classesedge.Animal.Cat.type"),
-            Data("Dog: hearth.examples.classesedge.Animal.Dog")
-          )
+          "directChildren" -> (if (LanguageVersion.byHearth.isScala3) Data.list(mammal, fish)
+                               else Data.list(fish, mammal)),
+          "exhaustiveChildren" ->
+            (if (LanguageVersion.byHearth.isScala3) Data.list(dog, cat, fish) else Data.list(fish, cat, dog))
+        )
+      }
+
+      test("directChildrenInOrder of a sealed type compiled in the same run") {
+        testChildrenInOrder[ShapeFromTheSameRun] <==> Data.map(
+          "declarationWhenAvailable" -> Data.list(Data("Circle"), Data("Rectangle"), Data("NoShape")),
+          "byName" -> Data.list(Data("Circle"), Data("NoShape"), Data("Rectangle"))
+        )
+      }
+
+      test("directChildrenInOrder of a sealed type read from class files") {
+        val byName = Data.list(Data("Circle"), Data("NoShape"), Data("Rectangle"))
+        testChildrenInOrder[examples.classesedge.ShapeFromClassFiles] <==> Data.map(
+          "declarationWhenAvailable" ->
+            (if (LanguageVersion.byHearth.isScala3) Data.list(Data("Circle"), Data("Rectangle"), Data("NoShape"))
+             else byName),
+          "byName" -> byName
         )
       }
 
@@ -946,4 +964,12 @@ object ClassesSpec {
     case object Yellow extends TrafficLight
     case object Green extends TrafficLight
   }
+}
+
+/** Children declared in non-alphabetical order, compiled in the same run as the tests expanding the macros. */
+sealed trait ShapeFromTheSameRun
+object ShapeFromTheSameRun {
+  final case class Circle(radius: Double) extends ShapeFromTheSameRun
+  final case class Rectangle(width: Double, height: Double) extends ShapeFromTheSameRun
+  case object NoShape extends ShapeFromTheSameRun
 }

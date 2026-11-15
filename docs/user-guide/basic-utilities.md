@@ -515,6 +515,7 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.baseClasses[MyClass]`               | `Type[MyClass].baseClasses`               | `List[??]`                                   | all ancestors (linearization)           |
 | `Type.directChildren[MyClass]`            | `Type[MyClass].directChildren`            | `Option[ListMap[String, ??<:[MyClass]]]`     | immediate subtypes (1)                  |
 | `Type.directChildrenList[MyClass]`        | `Type[MyClass].directChildrenList`        | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, as a list (7)       |
+| `Type.directChildrenInOrder[MyClass](o)`  | `Type[MyClass].directChildrenInOrder(o)`  | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, in order `o` (8)    |
 | `Type.exhaustiveChildren[MyClass]`        | `Type[MyClass].exhaustiveChildren`        | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                        |
 
 1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
@@ -543,8 +544,13 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
    then the result is `None`.
 7. `directChildren` is keyed by the subtype's *simple* name, so same-named subtypes from different scopes (e.g. a
    `case object Green` inside `object Color` and a top-level `case object Green`) collapse into one entry.
-   `directChildrenList` (since 0.4.1) keeps all of them, in declaration order. Don't rely on the key format of
-   `directChildren` - it is planned to change to the full name in 0.5.0.
+   `directChildrenList` (since 0.4.1) keeps all of them. Don't rely on the key format of `directChildren` - it is
+   planned to change to the full name in 0.5.0.
+8. The children come in declaration order when the compiler knows it: always on Scala 3, but on Scala 2 only for a
+   sealed type compiled together with the code expanding the macro - Scala 2 class files store the subtypes sorted by
+   name, so for a sealed type from another module (or one an incremental build did not recompile) they come sorted by
+   name. `directChildrenInOrder` (since 0.4.5) takes a `ChildrenOrder`: `ChildrenOrder.DeclarationWhenAvailable` (the
+   order of `directChildren`) or `ChildrenOrder.ByName`, which is the same on both Scala versions and in every build.
 
 **Visibility checks**:
 
