@@ -68,7 +68,9 @@ final class IsCollectionProviderForScalaListCons extends StandardMacroExtension 
           import item.Underlying as Item
           implicit val A: Type[A] = tpe
           ProviderResult.Matched(isCons[A, Item])
+        // $COVERAGE-OFF$ mightMatch rejects every other type before parse is called
         case _ => skippedLazily(s"${tpe.prettyPrint} is not ::[_]")
+        // $COVERAGE-ON$
       }
     })
   }
