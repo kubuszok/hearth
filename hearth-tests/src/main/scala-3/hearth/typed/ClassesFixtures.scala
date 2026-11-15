@@ -219,6 +219,10 @@ object ClassesFixtures {
   private def testCaseClassConstructErrorAggregationImpl[A: Type](using q: Quotes): Expr[Data] =
     new ClassesFixtures(q).testCaseClassConstructErrorAggregation[A]
 
+  inline def testChildrenInOrder[A]: Data = ${ testChildrenInOrderImpl[A] }
+  private def testChildrenInOrderImpl[A: Type](using q: Quotes): Expr[Data] =
+    new ClassesFixtures(q).testChildrenInOrder[A]
+
   inline def testEnumChildren[A]: Data = ${ testEnumChildrenImpl[A] }
   private def testEnumChildrenImpl[A: Type](using q: Quotes): Expr[Data] =
     new ClassesFixtures(q).testEnumChildren[A]

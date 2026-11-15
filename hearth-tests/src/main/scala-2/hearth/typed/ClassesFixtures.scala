@@ -88,6 +88,7 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
     testCaseClassConstructErrorAggregation[A]
 
   def testEnumChildrenImpl[A: c.WeakTypeTag]: c.Expr[Data] = testEnumChildren[A]
+  def testChildrenInOrderImpl[A: c.WeakTypeTag]: c.Expr[Data] = testChildrenInOrder[A]
 
   def testEnumMatchOnRuntimeImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = testEnumMatchOnRuntime[A](expr)
 
@@ -179,6 +180,7 @@ object ClassesFixtures {
     macro ClassesFixtures.testCaseClassConstructErrorAggregationImpl[A]
 
   def testEnumChildren[A]: Data = macro ClassesFixtures.testEnumChildrenImpl[A]
+  def testChildrenInOrder[A]: Data = macro ClassesFixtures.testChildrenInOrderImpl[A]
 
   def testEnumMatchOnRuntime[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnRuntimeImpl[A]
 

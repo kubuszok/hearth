@@ -70,6 +70,14 @@ object Animal {
   final case class Fish(name: String) extends Animal
 }
 
+/** Children declared in non-alphabetical order; the tests read this hierarchy from class files. */
+sealed trait ShapeFromClassFiles
+object ShapeFromClassFiles {
+  final case class Circle(radius: Double) extends ShapeFromClassFiles
+  final case class Rectangle(width: Double, height: Double) extends ShapeFromClassFiles
+  case object NoShape extends ShapeFromClassFiles
+}
+
 sealed trait SealedWithoutChildren
 
 // --- SingletonValue ---

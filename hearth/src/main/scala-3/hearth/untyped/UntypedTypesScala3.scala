@@ -855,13 +855,12 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
           else sym
 
-        // Sort the ORIGINAL child symbols BEFORE `handleSymbols`: for a `case object` it returns the synthetic module
-        // CLASS, whose source position is frequently absent during macro expansion, so `symbolOrdering` (position, then
-        // name when the position is absent) would flip between declaration and alphabetical order for the SAME
-        // sources. The `children` list order itself is not a documented declaration-order guarantee, hence the sort.
+        // `children` is already in declaration order - the order `Mirror.SumOf` uses for ordinals. Sorting by position
+        // would break it for symbols read from the classpath, which have no position during macro expansion, and the
+        // same sources would give different orders depending on what the build recompiled.
         // `classificationSymbol` rather than `typeSymbol`: for an alias (`type U[A] = Sealed[Any, A]`) the latter is the
         // alias' symbol, which has no children.
-        classificationSymbol(instanceTpe).children.sorted
+        classificationSymbol(instanceTpe).children
           .map(handleSymbols)
           .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
       }
