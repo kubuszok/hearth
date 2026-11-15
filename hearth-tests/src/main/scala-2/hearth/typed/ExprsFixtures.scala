@@ -57,6 +57,13 @@ final private class ExprsFixtures(val c: blackbox.Context) extends MacroCommonsS
   def testValDefsCreateAndUseImpl: c.Expr[Data] = testValDefsCreateAndUse
   def testLambdaInsideValInsideQuotedLambdaImpl: c.Expr[Data] = testLambdaInsideValInsideQuotedLambda
   def testNestedValDefsInsideLambdaBuilderImpl: c.Expr[Data] = testNestedValDefsInsideLambdaBuilder
+  def testValDefsInsideSpliceOfQuotedLambdaImpl: c.Expr[Data] = testValDefsInsideSpliceOfQuotedLambda
+  def testMatchCaseChainInsideSpliceOfQuotedLambdaImpl: c.Expr[Data] = testMatchCaseChainInsideSpliceOfQuotedLambda
+  def testQuotedLambdaWithValDefsInsideLambdaBuilderImpl: c.Expr[Data] = testQuotedLambdaWithValDefsInsideLambdaBuilder
+  def testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambdaImpl: c.Expr[Data] =
+    testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambda
+  def testValDefsNextToQuotedValsInsideSpliceOfQuotedLambdaImpl: c.Expr[Data] =
+    testValDefsNextToQuotedValsInsideSpliceOfQuotedLambda
   def testValDefsNextToQuotedValsInsideLambdaBuilderImpl: c.Expr[Data] = testValDefsNextToQuotedValsInsideLambdaBuilder
   def testVarOfLiteralTypeFromCodecImpl: c.Expr[Data] = testVarOfLiteralTypeFromCodec
   def testLambdasReturningTypeImpl[A: c.WeakTypeTag](value: c.Expr[A]): c.Expr[Data] =
@@ -212,6 +219,15 @@ object ExprsFixtures {
   def testValDefsCreateAndUse: Data = macro ExprsFixtures.testValDefsCreateAndUseImpl
   def testLambdaInsideValInsideQuotedLambda: Data = macro ExprsFixtures.testLambdaInsideValInsideQuotedLambdaImpl
   def testNestedValDefsInsideLambdaBuilder: Data = macro ExprsFixtures.testNestedValDefsInsideLambdaBuilderImpl
+  def testValDefsInsideSpliceOfQuotedLambda: Data = macro ExprsFixtures.testValDefsInsideSpliceOfQuotedLambdaImpl
+  def testMatchCaseChainInsideSpliceOfQuotedLambda: Data =
+    macro ExprsFixtures.testMatchCaseChainInsideSpliceOfQuotedLambdaImpl
+  def testQuotedLambdaWithValDefsInsideLambdaBuilder: Data =
+    macro ExprsFixtures.testQuotedLambdaWithValDefsInsideLambdaBuilderImpl
+  def testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambda: Data =
+    macro ExprsFixtures.testLambdaBuilderWithValDefsInsideSpliceOfQuotedLambdaImpl
+  def testValDefsNextToQuotedValsInsideSpliceOfQuotedLambda: Data =
+    macro ExprsFixtures.testValDefsNextToQuotedValsInsideSpliceOfQuotedLambdaImpl
   def testValDefsNextToQuotedValsInsideLambdaBuilder: Data =
     macro ExprsFixtures.testValDefsNextToQuotedValsInsideLambdaBuilderImpl
   def testVarOfLiteralTypeFromCodec: Data = macro ExprsFixtures.testVarOfLiteralTypeFromCodecImpl

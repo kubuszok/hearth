@@ -41,15 +41,20 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         * "Block contains definition with different owners". In the common, non-nested case `CrossQuotes.ctx == quotes`,
         * so this is exactly the entry splice owner and nothing changes.
         *
-        * `CrossQuotes.ctx` follows Hearth's own nested splices (which we WANT) but ALSO tracks into native quoted
-        * lambdas — `Expr.quote { x => ... }` produces an `$anonfun` splice owner. Fresh symbols created there via
-        * `ValDefs` are placed by Hearth's control flow at the ENCLOSING splice level (not inside the quoted lambda), so
-        * owning them by `$anonfun` makes a `Block` mix `$anonfun`-owned and macro-owned defs → the same "different
-        * owners" abort. When the ctx owner is an anonymous function, fall back to the native `Symbol.spliceOwner`,
-        * which is the stable enclosing owner.
+        * Inside the splice of a quoted lambda (`Expr.quote((i: Int) => ... Expr.splice(...))`) that owner is the
+        * lambda's `$anonfun`, and so must be the owner of the vals created there: the quote's own definitions and the
+        * ones created in nested splices are owned by it, and a `Block` mixing them with macro-owned vals is rejected.
         */
-      private[Expr] def currentSpliceOwner: Symbol = {
-        val ctxOwner = CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
+      private[typed] def currentSpliceOwner: Symbol =
+        CrossQuotes.ctx[scala.quoted.Quotes].reflect.Symbol.spliceOwner.asInstanceOf[Symbol]
+
+      /** The owner of the vals built with `ValDefBuilder`, which are meant to be cached in a `ValDefsCache` and placed
+        * together wherever the cache is turned into definitions - usually the outermost level of the expansion, even
+        * when they were built inside the splice of a quoted lambda. So the lambda's `$anonfun` is never their owner,
+        * which keeps them consistent with the `def`s built with `ValDefBuilder` (owned by the expansion).
+        */
+      private[typed] def cachedDefinitionOwner: Symbol = {
+        val ctxOwner = currentSpliceOwner
         if ctxOwner.isAnonymousFunction then Symbol.spliceOwner else ctxOwner
       }
 
@@ -1731,7 +1736,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         Nil
       )
       val uncheckedToMatch = Typed(
-        toMatch.asTerm.changeOwner(Symbol.spliceOwner),
+        toMatch.asTerm.changeOwner(Expr.platformSpecific.currentSpliceOwner),
         Annotated(TypeTree.of[A], uncheckedAnnot)
       )
 
@@ -1747,7 +1752,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
               // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
               // owners" when the body is spliced into the CaseDef.
-              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
+              stripInlined(result.asTerm).changeOwner(Expr.platformSpecific.currentSpliceOwner)
             )
 
             val enumCase = enumCaseSymbolOf(TypeRepr.of[Matched])
@@ -1774,7 +1779,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
               // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
               // owners" when the body is spliced into the CaseDef.
-              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
+              stripInlined(result.asTerm).changeOwner(Expr.platformSpecific.currentSpliceOwner)
             )
 
             // case tt(name @ _) => ... - the TypeTest instance is the extractor, its unapply is total
@@ -1797,7 +1802,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
               // nested in the body that were built in another context — e.g. a `ValDefs.createVal` whose value
               // contains an inline lambda — keep stale owners and trip "Block contains definitions with different
               // owners" when the body is spliced into the CaseDef.
-              stripInlined(result.asTerm).changeOwner(Symbol.spliceOwner)
+              stripInlined(result.asTerm).changeOwner(Expr.platformSpecific.currentSpliceOwner)
             )
             val valueTerm = valueRef.asTerm
             valueTerm match {
@@ -2089,7 +2094,8 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def ofVal[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Unit] = {
-      val name = freshTerm.valdef[Returned](freshName, null, Flags.EmptyFlags)
+      val name =
+        freshTerm.valdef[Returned](freshName, null, Flags.EmptyFlags, Expr.platformSpecific.cachedDefinitionOwner)
       val self = Ref(name).asExprOf[Returned]
       new ValDefBuilder[Expr[Returned], Returned, Unit](
         new MkValDef[Expr[Returned], Returned](
@@ -2103,7 +2109,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def ofVar[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]] = {
-      val name = freshTerm.valdef[Returned](freshName, null, Flags.Mutable)
+      val name = freshTerm.valdef[Returned](freshName, null, Flags.Mutable, Expr.platformSpecific.cachedDefinitionOwner)
       val self = Ref(name).asExprOf[Returned]
       val setter = (body: Expr[Returned]) => Assign(Ref(name), body.asTerm).asExprOf[Unit]
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned] => Expr[Unit]](
@@ -2120,7 +2126,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
     override def ofLazy[Returned: Type](
         freshName: FreshName
     ): ValDefBuilder[Expr[Returned], Returned, Expr[Returned]] = {
-      val name = freshTerm.valdef[Returned](freshName, null, Flags.Lazy)
+      val name = freshTerm.valdef[Returned](freshName, null, Flags.Lazy, Expr.platformSpecific.cachedDefinitionOwner)
       val self = Ref(name).asExprOf[Returned]
       new ValDefBuilder[Expr[Returned], Returned, Expr[Returned]](
         new MkValDef[Expr[Returned], Returned](
@@ -3719,12 +3725,15 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         new Mk[A => *] {
           override def apply[To: Type](body: Expr[To]): Expr[A => To] = withQuotes {
 
+            // The parameters' vals and the definitions of the body must share an owner, and the parameters are owned
+            // by the splice owner current when the builder was created - inside the splice of a quoted lambda that is
+            // the lambda, not the macro expansion.
             def mkBody(a: Expr[A]) = Block(
               List(
                 ValDef(a1, Some(a.asTerm)),
                 suppressUnused(a1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A) => ${ mkBody('a) } }
@@ -3752,7 +3761,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(b1, Some(b.asTerm)),
                 suppressUnused(b1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B) => ${ mkBody('a, 'b) } }
@@ -3785,7 +3794,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(c1, Some(c.asTerm)),
                 suppressUnused(c1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C) => ${ mkBody('a, 'b, 'c) } }
@@ -3823,7 +3832,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(d1, Some(d.asTerm)),
                 suppressUnused(d1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D) => ${ mkBody('a, 'b, 'c, 'd) } }
@@ -3866,7 +3875,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(e1, Some(e.asTerm)),
                 suppressUnused(e1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E) => ${ mkBody('a, 'b, 'c, 'd, 'e) } }
@@ -3914,7 +3923,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(f1, Some(f.asTerm)),
                 suppressUnused(f1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f) } }
@@ -3967,7 +3976,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(g1, Some(g.asTerm)),
                 suppressUnused(g1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g) } }
@@ -4025,7 +4034,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(h1, Some(h.asTerm)),
                 suppressUnused(h1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h) } }
@@ -4088,7 +4097,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(i1, Some(i.asTerm)),
                 suppressUnused(i1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i) } }
@@ -4156,7 +4165,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(j1, Some(j.asTerm)),
                 suppressUnused(j1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j) } }
@@ -4229,7 +4238,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(k1, Some(k.asTerm)),
                 suppressUnused(k1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k) } }
@@ -4307,7 +4316,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(l1, Some(l.asTerm)),
                 suppressUnused(l1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l) } }
@@ -4390,7 +4399,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(m1, Some(m.asTerm)),
                 suppressUnused(m1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm) } }
@@ -4478,7 +4487,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(n1, Some(n.asTerm)),
                 suppressUnused(n1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n) } }
@@ -4571,7 +4580,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(o1, Some(o.asTerm)),
                 suppressUnused(o1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o) } }
@@ -4669,7 +4678,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(p1, Some(p.asTerm)),
                 suppressUnused(p1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p) } }
@@ -4772,7 +4781,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(q1, Some(q.asTerm)),
                 suppressUnused(q1Expr)
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q) } }
@@ -4863,7 +4872,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(r1, Some(r.asTerm)),
                 suppressUnused(r1Expr),
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r) } }
@@ -4959,7 +4968,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(s1, Some(s.asTerm)),
                 suppressUnused(s1Expr),
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's) } }
@@ -5059,7 +5068,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(t1, Some(t.asTerm)),
                 suppressUnused(t1Expr),
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't) } }
@@ -5163,7 +5172,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(u1, Some(u.asTerm)),
                 suppressUnused(u1Expr),
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u) } }
@@ -5271,7 +5280,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
                 ValDef(v1, Some(v.asTerm)),
                 suppressUnused(v1Expr),
               ),
-              body.resetOwner.asTerm
+              body.asTerm.changeOwner(a1.owner)
             ).asExprOf[To]
 
             '{ (a: A, b: B, c: C, d: D, e: E, f: F, g: G, h: H, i: I, j: J, k: K, l: L, m: M, n: N, o: O, p: P, q: Q, r: R, s: S, t: T, u: U, v: V) => ${ mkBody('a, 'b, 'c, 'd, 'e, 'f, 'g, 'h, 'i, 'j, 'k, 'l, 'm, 'n, 'o, 'p, 'q, 'r, 's, 't, 'u, 'v) } }
