@@ -545,10 +545,37 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
         // (i.e. it is a genuinely static, top-level-reachable object) — the robust addressability check.
         else scala.util.Try(c.mirror.staticModule(full)).toOption.filter(_ == sym).map(_ => full)
       }
+    def isPackageSym(sym: Symbol): Boolean =
+      sym != null && sym != NoSymbol && (sym.isPackage || sym.isPackageClass) &&
+        sym != c.mirror.RootPackage && sym != c.mirror.RootClass && sym != c.mirror.EmptyPackage &&
+        sym != c.mirror.EmptyPackageClass && {
+          val full = sym.fullName
+          full.nonEmpty && full != "_root_" && !full.contains('<') && !full.contains('$')
+        }
+    def hasNoSymbol(tree: Tree): Boolean = tree.symbol == null || tree.symbol == NoSymbol
+    // A path through a package, e.g. `scala.Some`, `java.util.UUID`, `cats.data.NonEmptyList` or the typer-inserted
+    // `math.Numeric.IntIsIntegral`: its first segment would be captured by a same-named member at the expansion site
+    // (`def scala`, `val cats`, ...) or would not even resolve there (`math` is only visible through `import scala._`).
+    // The package `Ident` does not always carry a symbol, so it is also recognized by the owner of the selected one.
+    def packageOf(qual: Tree, selected: Symbol): Option[Symbol] = qual match {
+      case _: Ident | _: This if isPackageSym(qual.symbol) => Some(qual.symbol)
+      case Ident(name)
+          if hasNoSymbol(qual) && selected != null && selected != NoSymbol && isPackageSym(selected.owner) &&
+            selected.owner.name.toTermName == name.toTermName =>
+        Some(selected.owner)
+      case _ => None
+    }
     object transformer extends Transformer {
       override def transform(t: Tree): Tree = t match {
-        case id: Ident => qualifiedName(id.symbol).fold(super.transform(t))(rootedSelect)
-        case _         => super.transform(t)
+        case sel @ Select(qual, name) if packageOf(qual, sel.symbol).isDefined =>
+          treeCopy.Select(sel, rootedSelect(packageOf(qual, sel.symbol).get.fullName), name)
+        case id: Ident if isPackageSym(id.symbol) => rootedSelect(id.symbol.fullName)
+        case id: Ident                            => qualifiedName(id.symbol).fold(super.transform(t))(rootedSelect)
+        // Types written in the quote are printed from TypeTree.original, which Transformer does not visit.
+        case tt: TypeTree if tt.original != null =>
+          val original = transform(tt.original)
+          if (original eq tt.original) tt else c.internal.setOriginal(TypeTree(tt.tpe), original)
+        case _ => super.transform(t)
       }
     }
     transformer.transform(tree)
@@ -1136,7 +1163,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           )
         }
       }
-      .pipe(showCodePretty(_, SyntaxHighlight.plain))
+      .pipe(showCodePretty(_, SyntaxHighlight.plain, printRootPkg = true))
       // Put into quasiquote - we have to do it before replacing stubs, because we might have accidentaly removed some actual string interpolation
       .pipe(putIntoQuasiquote)
       // Replace stubs with their values:

@@ -875,7 +875,10 @@ trait ShowCodePrettyScala2 {
                 case Select(q, _)       => checkRootPackage(q)
                 case _: Ident | _: This =>
                   val sym = tr.symbol
-                  tr.hasExistingSymbol && sym.hasPackageFlag && sym.name != nme.ROOTPKG
+                  // Only a TOP-LEVEL package can be prefixed with `_root_.` (not `_root_` itself, nor e.g. `math`
+                  // reached through `import scala._`).
+                  tr.hasExistingSymbol && sym.hasPackageFlag && !sym.isRoot && !sym.isRootPackage &&
+                  !sym.isEmptyPackage && !sym.isEmptyPackageClass && sym.owner.isRoot
                 case _ => false
               })
 
@@ -1016,11 +1019,25 @@ trait ShowCodePrettyScala2 {
 
       // This code has to be invented from scratch because TreePrinter did not dealt with types.
 
+      /** With `printRootPkg`, a type whose path starts at a top-level package is printed as `_root_.pkg...`, so that
+        * printed code cannot be captured by a member named like that package where it is parsed back (Cross-Quotes).
+        */
+      private def printRootPkgIfTopLevelPackage(sym: Symbol): Unit =
+        if (printRootPkg && sym != NoSymbol) {
+          @tailrec
+          def topLevel(s: Symbol): Symbol =
+            if (s == NoSymbol || s.owner == NoSymbol || s.owner == c.mirror.RootClass) s else topLevel(s.owner)
+          val top = topLevel(sym)
+          if (top != NoSymbol && top.owner == c.mirror.RootClass && top.hasPackageFlag)
+            print(s"${printedName(nme.ROOTPKG)}.")
+        }
+
       private def printTypePrefix(pre: Type, sym: Symbol, printThisType: Boolean = true): Unit = pre match {
         // Do nothing - there is a difference between NoPrefix and NoType, we should safely skip printing on NoPrefix.
         case NoPrefix =>
-        // Do nothing - no need to prepend `<root>`.
+        // No need to prepend `<root>`, but `_root_` is needed when printing code to be parsed back.
         case root if root.typeSymbol.isRootSymbol =>
+          if (printRootPkg) print(s"${printedName(nme.ROOTPKG)}.")
         // Do nothing - $anon was removed so we need to remove the prefix as well
         case TypeRef(AnonThisType(), _, _) =>
         case AnonThisType()                =>
@@ -1036,6 +1053,7 @@ trait ShowCodePrettyScala2 {
         // Probably something was imported and if we stopped now, we would be missing the prefix, so we should recreate it.
         case NoType =>
           val reconstructedPrefix = sym.fullName.split('.').init.filterNot(Set("`<root>`", "`package`", "<none>"))
+          printRootPkgIfTopLevelPackage(sym)
           if (reconstructedPrefix.nonEmpty) print(reconstructedPrefix.mkString("."), ".")
         // Normal case - just print the prefix.
         case _ =>
