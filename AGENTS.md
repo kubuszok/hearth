@@ -217,6 +217,11 @@ Agents should:
 - **before reporting that a task is done**, run `sbt --client "quick-clean ; quick-test"` as the final
   verification step — while MCP speeds up the development loop, `sbt --client` compiles and tests across
   both Scala versions and is the more reliable way to confirm a fix
+- **when adding or moving a package in a published module**, classify it in the runtime / test-only / compile-time-only
+  tables of the FAQ (`docs/user-guide/faq.md`, "Which parts of Hearth end up in my application at runtime?") and run
+  `scala-cli run scripts/check-runtime-packages.scala`. If a macro starts generating code that refers to a package
+  listed as compile-time only, move that package to the runtime table. See "Runtime and compile-time packages" in
+  [Architecture overview](docs/contributing/architecture-overview.md)
 - **also run regression tiers**: `sbt --client "quick-clean-next-lts ; quick-test-next-lts"` to verify
   against Scala 3.9 and 2.13.18. The Next tier (3.10) may have known compilation issues — check before running
 

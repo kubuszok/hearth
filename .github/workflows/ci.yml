@@ -30,6 +30,21 @@ jobs:
       - name: Check code and docs formatting
         run: scalafmt --check
 
+  check-runtime-packages:
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.action != 'labeled' # run for 'opened', 'reopened' and 'synchronize'
+
+    name: Check that the FAQ classifies every published package as runtime or compile-time
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: coursier/setup-action@v3.1.0
+        with:
+          apps: scala-cli
+      - name: Compare published packages with the FAQ tables
+        run: scala-cli run scripts/check-runtime-packages.scala
+
   check-snippets:
 
     runs-on: ubuntu-latest

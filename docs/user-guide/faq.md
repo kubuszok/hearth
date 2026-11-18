@@ -249,6 +249,90 @@ it might not link correctly on Scala.js/Scala Native.
 
 Also, its MIO is _not_ truly parallel - such functionality is not needed for macros.
 
+## Which parts of Hearth end up in my application at runtime? Can I remove the rest from a fat JAR?
+
+Libraries built with Hearth depend on it in the normal `Compile` scope, so Hearth ends up on your runtime classpath, and
+in every fat JAR (uberjar) built with sbt-assembly, Maven Shade, Gradle Shadow, etc. Most of that code only runs inside
+the compiler, while macros are being expanded. Your application never loads it.
+
+!!! note "This only matters on the JVM"
+
+    Scala.js and Scala Native linkers keep only the code that is reachable from your program, so the compile-time
+    part of Hearth is dropped from the output anyway.
+
+The tables below list packages, not single classes, so they stay valid when the library grows.
+
+### Used at runtime: keep
+
+| Package                               | Artifact | What is there                                                                                                                                                                                                                                   |
+|---------------------------------------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `hearth.source`                       | `hearth` | `Line`, `File`, `FileName`, `MethodName`, `Location`, `Text` - values materialized by macros at the call site and then passed around in your code                                                                                              |
+| `hearth.typename`                     | `hearth` | `TypeName[A]` - the instances created by `TypeName.derived` are generated code that runs in your program                                                                                                                                       |
+| `hearth` (classes directly in it only) | `hearth` | `HearthVersion`, `ScalaVersion`, `JDKVersion`, `LanguageVersion`, `Platform` - usable at runtime (e.g. `JDKVersion.runtimeJDKVersion`), and macros can lift them into the generated code. The other classes there (`MacroCommons`, `Environments`, ...) run only during compilation, but they are small, so the simplest rule is to keep the whole package |
+
+### Used at runtime, but probably only in tests
+
+| Package                                                     | Artifact       | What is there                                                                                                                                                       |
+|-------------------------------------------------------------|----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `hearth.data`                                               | `hearth`       | `Data` and `DiffEntry` - a JSON-like value that a macro can turn into code (`ExprCodec[Data]`), mostly used to test what a macro computed. Safe to drop if nothing in your production code uses `Data` |
+| `hearth` (`Suite`, `MacroSuite`, `ScalaCheckSuite`)         | `hearth-munit` | test suites for MUnit. This artifact should be added with `% Test`, so it should never get into a fat JAR. If it does, fix the dependency scope instead of filtering it out |
+
+### Used only during macro expansion: safe to remove
+
+| Package / dependency                                               | Artifact                                  | Notes                                                                                                                         |
+|--------------------------------------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| `hearth.typed`, `hearth.untyped`                                   | `hearth`                                  | the core macro APIs - by far the largest part of the library                                                                  |
+| `hearth.std` (with `hearth.std.extensions`), `META-INF/services/hearth.*` | `hearth`                           | standard extensions, which are loaded with `ServiceLoader` by the compiler during macro expansion                             |
+| `hearth.debug`                                                     | `hearth`                                  | `Debug.withFinalCodeInIDE` etc. expand to the expression they were given, so the generated code never calls them              |
+| `hearth.fp`                                                        | `hearth-micro-fp` (whole artifact)        | unless you use micro-FP in your own production code, which [is not recommended](#can-i-use-micro-fpmio-in-the-production-code) |
+| `hearth.treeprinter`                                               | `hearth-better-printers` (whole artifact) |                                                                                                                               |
+| `hearth.cq`                                                        | `hearth-cross-quotes` (whole artifact)    | on Scala 2 it is a library dependency; on Scala 3 it is a compiler plugin, which never gets on the runtime classpath          |
+| `scala-compiler`, `jline`, `java-diff-utils`                       | Scala 2.13 only, pulled in by Hearth      | unless your application uses them itself (e.g. it runs the Scala compiler or the REPL, or it uses JLine for its own terminal UI) |
+| `scala-reflect`                                                    | Scala 2.13 only, pulled in by Hearth      | Hearth's runtime classes do not need it, but other libraries that use Scala 2 runtime reflection do - remove it only if nothing else in your application uses it |
+
+Libraries built with Hearth have the same split: their macro implementations are compile-time only, too. Check
+their documentation for the packages they can tell you to remove.
+
+!!! warning "Scala 3 multi-stage programming"
+
+    With `scala.quoted.staging` the compiler runs inside your application, so macro code is called at runtime, and
+    the "compile-time only" packages above become runtime dependencies. We have **not tested** whether Hearth works
+    with staging. If you use it, keep all of Hearth in your fat JAR (and please tell us whether it works).
+
+### Example: sbt-assembly
+
+```scala
+// build.sbt (sbt 1.x, sbt-assembly 2.x)
+assembly / assemblyExcludedJars := {
+  val compileTimeOnlyJars = Seq(
+    "hearth-better-printers_",
+    "hearth-cross-quotes_",
+    "hearth-micro-fp_",
+    // Scala 2.13 only - remove these lines if your application uses them itself
+    "scala-compiler-",
+    "jline-",
+    "java-diff-utils-"
+  )
+  (assembly / fullClasspath).value.filter { jar =>
+    compileTimeOnlyJars.exists(jar.data.getName.startsWith)
+  }
+}
+
+assembly / assemblyMergeStrategy := {
+  case PathList("hearth", "typed" | "untyped" | "std" | "debug", _*)                => MergeStrategy.discard
+  case PathList("META-INF", "services", service) if service.startsWith("hearth.") => MergeStrategy.discard
+  // uncomment if nothing in your production code uses hearth.data.Data:
+  // case PathList("hearth", "data", _*) => MergeStrategy.discard
+  case other =>
+    val defaultStrategy = (assembly / assemblyMergeStrategy).value
+    defaultStrategy(other)
+}
+```
+
+Run your application (or its integration tests) from the fat JAR afterwards. A `NoClassDefFoundError` mentioning
+`hearth/...` means that something does need the removed package at runtime: put it back, and please report which
+class was missing.
+
 ## How to fix `forward reference to value ... defined on line ... extends over definition of value ...`?
 
 It happened when you write:
