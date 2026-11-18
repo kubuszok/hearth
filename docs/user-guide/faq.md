@@ -244,8 +244,20 @@ In Claude Code:
 /plugin install hearth@kubuszok
 ```
 
-The repository's README explains how to install them in Codex, GitHub Copilot CLI, Cursor, OpenCode, Gemini CLI and
-other harnesses. For a condensed overview without installing anything, point the agent at
+In OpenAI Codex:
+
+```bash
+codex plugin marketplace add kubuszok/agent-skills
+codex plugin add hearth@kubuszok
+```
+
+In OpenCode, Gemini CLI and other harnesses that read plain skill folders:
+
+```bash
+npx skills add https://github.com/kubuszok/agent-skills/tree/master/skills/hearth
+```
+
+The repository's README also covers GitHub Copilot CLI, Cursor and sharing the setup with a team. For a condensed overview without installing anything, point the agent at
 [llms.txt](https://github.com/kubuszok/hearth/blob/master/docs/user-guide/llms.txt).
 
 ## Can I use micro-FP/MIO in the production code?
