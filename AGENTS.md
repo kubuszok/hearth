@@ -262,6 +262,10 @@ a changed build setup - must:
 When a skill contradicts the user guide or the sources, the sources win: fix the skill, and fix the guide if it is
 wrong too.
 
+This repository enables the `hearth` plugin for Claude Code (`.claude/settings.json`), so its skills load while you
+work here. They describe the last **released** version: on `master` an API, a default or a workaround they mention may
+already have changed, so check the sources before relying on them - and update the skills when they are out of date.
+
 ### Code comments
 
 We aim for code that explains itself through its names: type names (including the packages and objects they live in),

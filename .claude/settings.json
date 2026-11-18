@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "kubuszok": {
+      "source": {
+        "source": "github",
+        "repo": "kubuszok/agent-skills"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "hearth@kubuszok": true
+  }
+}
