@@ -39,6 +39,10 @@ dependency injection, mocking and parser generation.
  * macro-extension system that allows you to extend your macros just by adding a dependency to the class path - without any additional imports!
  * a macro API with implementations for the Scala 2 and Scala 3 macro systems - use it with either or both
 
+Working with a coding agent? Install the `hearth` plugin from the
+[kubuszok agent skills marketplace](https://github.com/kubuszok/agent-skills) (see the
+[FAQ](faq.md#can-a-coding-agent-claude-code-codex-cursor-help-me-write-macros-with-hearth)).
+
 Hearth encourages [sanely-automatic type class derivation](https://kubuszok.com/2025/sanely-automatic-derivation/) — a pattern where the macro handles recursion internally, producing better error messages and supporting recursive types out of the box. To learn how the Scala ecosystem converged on this approach, see [Prior Art & Influences](prior-art.md).
 
 ## Example: a `Show` derivation

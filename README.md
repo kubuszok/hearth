@@ -20,6 +20,8 @@ Hearth helps you write robust, fast-to-compile, easy-to-maintain macros - for Sc
    compiler's own API stays available
  - **general purpose** - type class derivation, optics, dependency injection, mocking, parsers and more
  - exhaustive documentation and no dependencies on other ecosystems
+ - **agent skills** - the `hearth` plugin of the [kubuszok agent skills marketplace](https://github.com/kubuszok/agent-skills)
+   teaches Claude Code, Codex, Cursor and other coding agents how to use Hearth
 
 ## Call for Feedback
 
