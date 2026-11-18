@@ -5,6 +5,7 @@ import org.scalajs.sbtplugin.ScalaJSPlugin
 import scala.scalanative.sbtplugin.ScalaNativePlugin
 import sbtide.Keys.ideSkipProject
 import org.scalafmt.sbt.ScalafmtPlugin.autoImport.scalafmtOnCompile
+import kubuszok.sbt.KubuszokPlugin.autoImport.isCI
 
 object Scala2Rows {
 
@@ -18,7 +19,7 @@ object Scala2Rows {
   ): ProjectMatrix = {
     def ideSettings(platform: String): Seq[Setting[?]] = {
       val skip = ideSkip(platform)
-      Seq(ideSkipProject := skip, bspEnabled := !skip, scalafmtOnCompile := !skip)
+      Seq(ideSkipProject := skip, bspEnabled := !skip, scalafmtOnCompile := !skip && !isCI)
     }
     pm.customRow(true, Seq(scala2Axis, VirtualAxis.jvm), (p: Project) => configJvm(p).settings(ideSettings("jvm")*))
       .customRow(
@@ -43,7 +44,8 @@ object Scala2Rows {
     pm.customRow(
       true,
       Seq(scala2Axis, VirtualAxis.jvm),
-      (p: Project) => configure(p).settings(ideSkipProject := skip, bspEnabled := !skip, scalafmtOnCompile := !skip)
+      (p: Project) =>
+        configure(p).settings(ideSkipProject := skip, bspEnabled := !skip, scalafmtOnCompile := !skip && !isCI)
     )
   }
 }
