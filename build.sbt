@@ -65,17 +65,17 @@ val only1VersionInIDE = dev.only1VersionInIDE :+ MatrixAction
 
 // IDE skip predicate for Scala 2 rows.
 val scala2IdeSkip: String => Boolean = {
-  val ideScala = dev.props.getProperty("ide.scala", "3")
-  val idePlatform = dev.props.getProperty("ide.platform", "jvm")
+  val ideScala = dev.prop("ide.scala").getOrElse("3")
+  val idePlatform = dev.prop("ide.platform").getOrElse("jvm")
   platform => ideScala != "2.13" || idePlatform != platform
 }
 
 val logCrossQuotes =
-  dev.props.getProperty("log.cross-quotes") match {
-    case "true"                          => true
-    case "false"                         => false
-    case otherwise if otherwise.nonEmpty => otherwise
-    case _                               => !isCI
+  dev.prop("log.cross-quotes") match {
+    case Some("true")    => true
+    case Some("false")   => false
+    case Some(otherwise) => otherwise
+    case None            => !isCI
   }
 
 // Common settings:
