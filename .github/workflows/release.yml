@@ -9,6 +9,11 @@ on:
 
 jobs:
   release-tag:
+    # PR snapshots let a change be tested before merging. Bot (Dependabot, Scala Steward) and fork PRs get no
+    # secrets, so only trusted authors' PRs publish. Never drop this guard while `pull_request` is a trigger.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
 
     name: ${{ startsWith(github.ref, 'refs/tags/') && 'Publish Tag as Release' || 'Publish Snapshot' }}
