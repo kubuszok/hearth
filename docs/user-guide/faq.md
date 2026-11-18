@@ -228,6 +228,26 @@ The features introduced by later versions of Scala/JDK (when already supported) 
 These requirements might change, but we'll **try to stay on the lowest version** of Scala/JDK possible, **while testing against the newest**
 (currently {{ scala.newest_2_13 }}, {{ scala.newest_3 }}).
 
+## Can a coding agent (Claude Code, Codex, Cursor, ...) help me write macros with Hearth?
+
+Yes. The [kubuszok agent skills marketplace](https://github.com/kubuszok/agent-skills) has a `hearth` plugin: skills
+that teach coding agents how to use Hearth - project setup, Cross Quotes, type class derivation with `MIO`,
+`CaseClass`/`Enum`, Standard Extensions, debugging and testing macros, the runtime utilities (`TypeName`, source
+location), the pitfalls of cross-compiling, and a review checklist for macros before you release them. The skills
+are checked against Hearth's sources and describe a specific Hearth version; they tell the agent to check the version
+in your build.
+
+In Claude Code:
+
+```
+/plugin marketplace add kubuszok/agent-skills
+/plugin install hearth@kubuszok
+```
+
+The repository's README explains how to install them in Codex, GitHub Copilot CLI, Cursor, OpenCode, Gemini CLI and
+other harnesses. For a condensed overview without installing anything, point the agent at
+[llms.txt](https://github.com/kubuszok/hearth/blob/master/docs/user-guide/llms.txt).
+
 ## Can I use micro-FP/MIO in the production code?
 
 **It's not recommended.**
