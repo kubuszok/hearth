@@ -26,5 +26,6 @@ project/metals.sbt
 
 # other
 .scala-build
-.claude
+.claude/*
+!.claude/settings.json
 *.log
