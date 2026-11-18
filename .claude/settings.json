@@ -8,6 +8,7 @@
     }
   },
   "enabledPlugins": {
+    "sbt-kubuszok@kubuszok": true,
     "hearth@kubuszok": true
   }
 }
