@@ -285,7 +285,7 @@ need to use actual IO in macros. However:
         ```scala
         import hearth.fp.effect.*
 
-        val counter = MLocal(initial = 0, fork = i => i + 1, join = (a, b) => a max b)
+        val counter = MLocal(initial = 0)(fork = i => i + 1)(join = (a, b) => a max b)
       
         // This is just a recipe for computation, it's not executed yet.
         // In this recipe we are reading the current value
