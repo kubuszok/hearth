@@ -230,6 +230,30 @@ final class ExprsSpec extends MacroSuite {
           )
         }
 
+        test("should evaluate a vararg factory with a single element: List(1)") {
+          testSemiEval(List(1)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("List(1)"),
+            "class" -> Data("scala.collection.immutable.$colon$colon")
+          )
+        }
+
+        test("should evaluate a vararg factory with a single element: Vector(\"a\")") {
+          testSemiEval(Vector("a")) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("Vector(a)"),
+            "class" -> Data("scala.collection.immutable.Vector1")
+          )
+        }
+
+        test("should evaluate a vararg factory with a single element: Map(\"a\" -> 1)") {
+          testSemiEval(Map("a" -> 1)) <==> Data.map(
+            "status" -> Data("success"),
+            "value" -> Data("Map(a -> 1)"),
+            "class" -> Data("scala.collection.immutable.Map$Map1")
+          )
+        }
+
         test("should evaluate method call: \"hello\".toUpperCase") {
           testSemiEval("hello".toUpperCase) <==> Data.map(
             "status" -> Data("success"),

@@ -861,10 +861,10 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
           args: List[Any],
           kind: String
       ): Either[NonEmptyVector[String], (E, List[Any])] = {
-        val byArity = candidates.filter(_.getParameterCount == args.size)
+        val byArity = withoutBridges(candidates.filter(_.getParameterCount == args.size))
         val exactMatch =
           if (byArity.isEmpty) None
-          else if (byArity.sizeIs == 1) Some((byArity.head, args))
+          else if (byArity.sizeIs == 1 && !isUnpackedVararg(byArity.head, args)) Some((byArity.head, args))
           else {
             val matching = byArity.filter { exec =>
               val paramTypes = exec.getParameterTypes
@@ -885,6 +885,29 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
         }
       }
 
+      // A bridge only forwards to the method it bridges (e.g. a case class companion's `apply(Object)` for
+      // `apply(Seq)`), but its erased `Object` parameters accept arguments the real method would reject.
+      private def withoutBridges[E <: java.lang.reflect.Executable](candidates: List[E]): List[E] = {
+        val nonBridges = candidates.filterNot {
+          case method: java.lang.reflect.Method => method.isBridge
+          case _                                => false
+        }
+        if (nonBridges.isEmpty) candidates else nonBridges
+      }
+
+      // A Scala vararg parameter erases to a single `Seq` parameter, so `List(x)` has as many arguments as `List.apply`
+      // has parameters - but `x` itself still has to be packed into the `Seq`.
+      private def isUnpackedVararg(exec: java.lang.reflect.Executable, args: List[Any]): Boolean =
+        args.lastOption.exists { last =>
+          val lastParam = exec.getParameterTypes.last
+          isVarargParameter(lastParam) && last != null && !lastParam.isAssignableFrom(last.getClass)
+        }
+
+      private def isVarargParameter(param: java.lang.Class[?]): Boolean =
+        param.isAssignableFrom(classOf[scala.collection.immutable.Seq[?]]) ||
+          classOf[scala.collection.Seq[?]].isAssignableFrom(param) ||
+          param.isArray
+
       private def tryVarargs[E <: java.lang.reflect.Executable](
           candidates: List[E],
           args: List[Any],
@@ -892,10 +915,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       ): Either[NonEmptyVector[String], (E, List[Any])] = {
         val varargsCandidates = candidates.filter { exec =>
           val params = exec.getParameterTypes
-          params.nonEmpty && args.size >= params.length - 1 &&
-          (params.last.isAssignableFrom(classOf[scala.collection.immutable.Seq[?]]) ||
-            classOf[scala.collection.Seq[?]].isAssignableFrom(params.last) ||
-            params.last.isArray)
+          params.nonEmpty && args.size >= params.length - 1 && isVarargParameter(params.last)
         }
         varargsCandidates match {
           case exec :: _ =>

@@ -53,6 +53,16 @@ final class ExprCodecSpec extends MacroSuite {
           )
         )
       }
+
+      test("vararg case class with a single element") {
+        testExprCodecRoundTrip(VarargNumbers(1)) <==> Data.map(
+          "decoded" -> Data("VarargNumbers(List(1))"),
+          "reLifted" -> caseClassReLifted(
+            s2 = "new hearth.examples.expr_codecs.VarargNumbers((scala.collection.immutable.Seq(1): _*))",
+            s3 = "new hearth.examples.expr_codecs.VarargNumbers(scala.Seq.apply[scala.Int](1): _*)"
+          )
+        )
+      }
     }
 
     group("sealed traits") {
@@ -99,6 +109,7 @@ final class ExprCodecSpec extends MacroSuite {
       // (Scala 2) or `Map` literal - a separate limitation - so a full round-trip via this fixture is not observable.)
       test("List")(testSemiQuoteReLift[List[Int]](List(1, 2, 3)) <==> Data("reLifted: List(1, 2, 3)"))
       test("Vector")(testSemiQuoteReLift[Vector[Int]](Vector(1, 2, 3)) <==> Data("reLifted: Vector(1, 2, 3)"))
+      test("List with a single element")(testSemiQuoteReLift[List[Int]](List(1)) <==> Data("reLifted: List(1)"))
       test("Option")(testSemiQuoteReLift[Option[Int]](Some(42)) <==> Data("reLifted: Some(42)"))
       test("Either")(testSemiQuoteReLift[Either[String, Int]](Right(1)) <==> Data("reLifted: Right(1)"))
     }
