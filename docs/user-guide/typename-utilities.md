@@ -60,7 +60,8 @@ abstract type parameters, existing `TypeName` instances for those parameters are
 
     ```scala
     def typeName[A: TypeName]: TypeName[List[A]] = TypeName.derived
-    typeName[String].plainPrint // "scala.collection.immutable.List[java.lang.String]"
+    typeName[String].plainPrint // "scala.collection.immutable.List[java.lang.String]" (Scala 2.13.17+ / 3.7.0+)
+                                // "scala.collection.immutable.List[A]" on older compilers
     ```
 
 !!! warning "Scala Version Requirements for Injection"
@@ -72,7 +73,8 @@ abstract type parameters, existing `TypeName` instances for those parameters are
     On older Scala versions (2.13.16, 3.3.x–3.6.x), `TypeName` still works correctly for basic
     derivation (all 4 print methods produce accurate output), but **injection is disabled** — existing
     `TypeName` instances for type arguments are not picked up. The macro falls back to default
-    type printing for all type arguments.
+    type printing for all type arguments, so an abstract type parameter is printed by its
+    name (e.g. `List[A]`).
 
     This limitation exists because safe implicit summoning (that avoids infinite recursion with the
     auto-derived `TypeName.derived`) requires `summonImplicitIgnoring`, which is only available on

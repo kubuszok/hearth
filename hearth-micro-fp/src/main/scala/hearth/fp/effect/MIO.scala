@@ -54,7 +54,7 @@ import hearth.fp.data.NonEmptyVector
   * // It's not shown in this example, but the difference to a gloval var is, that it allow us to handle mutating
   * // it inside `parMap2`/`parTuple` as if they were different "fibers" with separate copies of this "var", where each
   * // can modify it independently. After "joining" them, we can define how these 2 values should be reconciled.
-  * val counter = MLocal(initial = 0, fork = i => i + 1, join = (a, b) => a max b)
+  * val counter = MLocal(0)(i => i + 1)((a, b) => a max b) // initial, fork, join
   *
   * // This is just a recipe for computation, it's not executed yet.
   * // In this recepe we are reading the current value of the counter, and logging it to 3 different levels.

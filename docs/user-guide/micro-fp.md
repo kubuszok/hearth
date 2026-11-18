@@ -265,7 +265,7 @@ Extends `Applicative` with parallel semantics. Unlike `Applicative` which has fa
     val seqResult = name.map2(age) { (n, a) => s"$n is $a" }
     pprint.pprintln(seqResult)
     // expected output:
-    // Left(value = List("Name is required")
+    // Left(value = List("Name is required"))
     
     // Parallel - collects all errors
     val parResult = name.parMap2(age) { (n, a) => s"$n is $a" }
@@ -641,7 +641,7 @@ To implement type classes for your own types, follow these patterns:
 | `Applicative[F]` | Lift and combine         | `pure`, `map2`         | `hearth.fp.syntax.*` |
 | `Parallel[F]`    | Parallel combination     | `parMap2`              | `hearth.fp.syntax.*` |
 | `Traverse[F]`    | Traverse with effects    | `traverse`, `sequence` | `hearth.fp.syntax.*` |
-| `DirectStyle[F]` | Direct style programming | `scoped`               | `hearth.fp.syntax.*` |
+| `DirectStyle[F]` | Direct style programming | `scoped`               | `hearth.fp.DirectStyle` |
 
 ### Built-in Instances
 
@@ -655,8 +655,14 @@ The library provides instances for common Scala types:
 - **`Try`**: Exception handling
 - **`List`**: Sequential collections
 - **`Vector`**: Indexed collections
-- **`NonEmptyList`**: Non-empty lists
-- **`NonEmptyVector`**: Non-empty vectors
+- **`NonEmptyList`**: Non-empty lists (`Traverse` only, in its companion)
+- **`NonEmptyVector`**: Non-empty vectors (`Traverse` only, in its companion)
+- **`Either[NonEmptyList[E], *]`**, **`Either[NonEmptyVector[E], *]`**: Error aggregation (in the companions of `NonEmptyList`/`NonEmptyVector`)
+- **`MIO`**: `Parallel` (aggregates errors) and `DirectStyle`, in the `MIO` companion
+
+Only the `Parallel` instances (`parMap2`, `parTuple`, `parTraverse`, ...) aggregate errors, and only for `Either`s whose
+left side is a collection (`List`, `Vector`, `NonEmptyList`, `NonEmptyVector`) and for `MIO`. `Either[E, *]` with a
+single error has no `Parallel` instance; sequential operations (`map2`, `traverse`) are always fail-fast.
 
 ## Data
 

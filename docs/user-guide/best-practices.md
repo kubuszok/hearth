@@ -99,7 +99,7 @@ several smaller `def`s. This approach:
  * prevents issues with a method's body exceeding the allowed size (compilation fails if bytecode would exceed 64kB)
  * helps the JVM compile and optimize the code, since smaller methods are easier to analyze and profile
 
-!!! tip "Use [`ValDefs`](basic-utilities.md#valdefs) and combine them with `.map2`/`.parMap2` and/or use [`ValDefsCache`](basic-utilities.md#valdefscache) to define multiple `def`s in scope, use them, and prepend before the final expression."
+!!! tip "Use [`ValDefs`](basic-utilities.md#valdefs) and combine them with `.map2`/`.traverse` (they have no `Parallel` instance) and/or use [`ValDefsCache`](basic-utilities.md#valdefscache) to define multiple `def`s in scope, use them, and prepend before the final expression."
 
 ### Allow previewing macro logic
 
@@ -305,28 +305,28 @@ need to use actual IO in macros. However:
         ```scala
         import hearth.fp.effect.*
 
-        Log.nestedScope("New nested scope") {
+        Log.namedScope("New nested scope") {
           Log.info("Started doing X") >>
             someMioOperation(args) *>
             Log.info("Done doing X")
         }
         ```
 
- - it provides `async`-`await` operations for cases when monadic/parallel interfaces would be inconvenient or
+ - it provides direct-style `MIO.scoped { runSafe => ... }` for cases when monadic/parallel interfaces would be inconvenient or
    impossible to use, e.g.
 
-    !!! example "`async`-`await` (direct style) example"
+    !!! example "Direct style (`MIO.scoped`) example"
 
         ```scala
         import hearth.fp.effect.*
 
-        MIO.async { await =>
+        MIO.scoped { runSafe =>
           Expr.quote {
             new Show[A] {
 
               def show(a: A): String = Expr.splice {
                 // good luck handling it with for-comprehension
-                await( errorReturningMethod(Expr.quote { a }) )
+                runSafe( errorReturningMethod(Expr.quote { a }) )
               }
             }
           }
@@ -678,7 +678,7 @@ Extends `Suite` with compile-time error checking utilities:
 
 #### hearth.ScalaCheckSuite
 
-Combines `Suite` with ScalaCheck for property-based testing, with Hearth-specific `Arbitrary` instances for `hearth.data.Data` structures.
+Combines `Suite` with ScalaCheck for property-based testing (`property(name)(prop)`, `===` with diffs for `Data`/`String`), with `Arbitrary` instances for `hearth.fp.data.NonEmptyList`/`NonEmptyVector`/`NonEmptyMap`, `MEval` and `MIO`.
 
 ### Testing multiple properties with Data
 
@@ -761,7 +761,7 @@ The **hearth.data.Data** structure is a JSON-like format that allows testing mul
 
 ### Assertion operators
 
-**Use `==>` for simple equality** assertions on any type. On failure, shows: `expected: X but got: Y`
+**Use `==>` for simple equality** assertions on any type. On failure it throws an `AssertionError` with `==> assertion failed:` followed by `<actual> != <expected>`
 
 **Use `<==>` for `String` and `hearth.data.Data`** comparisons with detailed diff output. Essential for comparing multi-line strings or complex Data structures.
 

@@ -167,8 +167,12 @@ The values are determined at compile time but available at runtime, making them 
 
 ## Limitations
 
-- **Method context required**: `MethodName` requires an enclosing method (will fail in top-level code or object initialization)
-- **File context required**: `File` and `FileName` require file position information (may fail in some REPL contexts)
+- **Method context**: `MethodName` is the innermost enclosing method (lambdas are skipped); in a class/object body, a
+  constructor or a Scala 3 top-level `val` it is `<init>`
+- **File context required**: `File` and `FileName` require file position information - in the REPL they fail with
+  `No file found for position ...`; in Scala CLI `.sc` scripts they report the generated wrapper's file name and line
+- **Absolute paths**: `File` (and `Location`) embed the absolute path of the source file on the build machine in the
+  compiled code; use `FileName` (or `Location.fileName`) when builds must be reproducible
 - **Compile-time expansion**: The macros expand at compile time, so the values reflect the source location where the macro is called, not where it's defined
 
 ## Relationship with Other Utilities

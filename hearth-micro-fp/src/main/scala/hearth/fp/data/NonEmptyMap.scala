@@ -27,8 +27,8 @@ final case class NonEmptyMap[K, +V](head: (K, V), tail: ListMap[K, V]) {
     if (head._1 == pair._1) NonEmptyMap(pair, tail)
     else NonEmptyMap(pair, ListMap.from(Iterable(head) ++ tail.removed(pair._1)))
 
-  /** Appends/upserts a pair: if its key already exists the entry is updated in place, otherwise it is added at the end.
-    * De-duplicates the key rather than growing the map with a duplicate.
+  /** Appends/upserts a pair at the end: if its key already exists, the old entry is removed and the new one is added
+    * last. De-duplicates the key rather than growing the map with a duplicate.
     *
     * @since 0.1.0
     */

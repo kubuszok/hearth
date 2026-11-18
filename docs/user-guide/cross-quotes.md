@@ -13,7 +13,7 @@ Cross Quotes is a library that provides a unified way to write quoted expression
     ```scala
     libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        compilerPlugin("com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3")
+        compilerPlugin("com.kubuszok" % "hearth-cross-quotes_3" % "{{ hearth_version() }}")
       )
       case _            => Seq()
     }
@@ -187,7 +187,7 @@ You can also specify bounds:
     val bounded = Type.Ctor1.Bounded.of[Nothing, String, Option]
     ```
 
-#### Partial Application with `setA`, `setB`, ..., `setLast`
+#### Partial Application with `setA`, `setB`, ...
 
 For type constructors with 2 or more type parameters, you can fix one parameter at a time to produce a smaller type constructor:
 
@@ -200,9 +200,9 @@ For type constructors with 2 or more type parameters, you can fix one parameter 
     // Returns a Ctor1 for Either[String, _]
     val eitherStringCtor: Type.Ctor1[Either[String, *]] = eitherCtor.setA[String]
 
-    // Fix the last parameter to Int:
+    // Fix the second parameter (B) to Int:
     // Returns a Ctor1 for Either[*, Int]
-    val eitherIntCtor: Type.Ctor1[Either[*, Int]] = eitherCtor.setLast[Int]
+    val eitherIntCtor: Type.Ctor1[Either[*, Int]] = eitherCtor.setB[Int]
     ```
 
 The `setX` methods use the naming convention where type parameters are named `A`, `B`, `C`, ..., so `setA` fixes the first, `setB` the second, etc.
@@ -1100,12 +1100,12 @@ You can enable logging to see how Cross Quotes transforms your code:
     ```scala
     scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        // set to true OR file1.scala,file2.scala,...
+        // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
         // to debug cross-quotes generation on Scala 3
         "-P:hearth.cross-quotes:logging=false"
       )
       case Some((2, 13)) => Seq(
-        // set to true OR file1.scala,file2.scala,...
+        // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
         // to debug cross-quotes generation on Scala 2
         "-Xmacro-settings:hearth.cross-quotes.logging=false"
       )
@@ -1116,7 +1116,7 @@ You can enable logging to see how Cross Quotes transforms your code:
 
     ```scala
     //> using target.scala {{ scala.2_13 }}
-    // set to true OR file1.scala,file2.scala,...
+    // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
     // to debug cross-quotes generation on Scala 2
     //> using options "-Xmacro-settings:hearth.cross-quotes.logging=false"
     ```
@@ -1124,7 +1124,7 @@ You can enable logging to see how Cross Quotes transforms your code:
     ```scala
     //> using target.scala {{ scala.3 }}
     //> using plugin com.kubuszok::hearth-cross-quotes::{{ hearth_version() }}
-    // set to true OR file1.scala,file2.scala,...
+    // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
     // to debug cross-quotes generation on Scala 3
     //> using options "-P:hearth.cross-quotes:logging=false"
     ```

@@ -18,16 +18,19 @@ This module addresses these shortcomings by providing improved printers with syn
 
 ## Basic Utilities integrations
 
-If you are using `MacroCommons` and its:
+If you are using `MacroCommons`, you are using Better Printers already and don't need to add them to your project:
 
- - `Expr.prettyPrint(expr)`/`expr.prettyPrint`
- - `Expr.plainPrint(expr)`/`expr.plainPrint`
- - `Expr.prettyAST(expr)`/`expr.prettyAST`
- - `Expr.plainAST(expr)`/`expr.plainAST`
- - `Type.prettyPrint[A]`/`Type[A].prettyPrint`
- - `Type.plainPrint[A]`/`Type[A].plainPrint`
+ - on Scala 2: `Expr.prettyPrint(expr)`/`expr.prettyPrint`, `Expr.plainPrint(expr)`/`expr.plainPrint`,
+   `Expr.prettyAST(expr)`/`expr.prettyAST` and `Expr.plainAST(expr)`/`expr.plainAST`
+ - on Scala 3: `Expr.prettyAST(expr)`/`expr.prettyAST` and `Expr.plainAST(expr)`/`expr.plainAST` - code printing
+   (`prettyPrint`/`plainPrint`) uses the compiler's `Printer.TreeAnsiCode`/`Printer.TreeCode`, since the module has no
+   Scala 3 code printer
 
-then you are using Better Printers already. You don't need to additionally add them to your project.
+`Type.prettyPrint[A]`/`Type[A].prettyPrint` and `Type.plainPrint[A]`/`Type[A].plainPrint` print types consistently on
+both versions.
+
+Setting `-Xmacro-settings:hearth.betterPrintersShouldFailOnUnsupportedTree=false` (default: `true`) makes the printers
+print a placeholder instead of failing on a tree they do not support.
 
 ## Installation
 
@@ -180,8 +183,8 @@ This is used internally by `Type.runtimePlainPrint`, `Type.runtimePrettyPrint`, 
 | Feature        | Scala 2 Built-in | Better Printers (Scala 2) | Scala 3 Built-in   | Better Printers (Scala 3) |
 |----------------|------------------|---------------------------|--------------------|---------------------------|
 | Code rendering |                  |                           |                    |                           |
-| ANSI colors    | ❌                | ✅                         | ✅ (`TreeAnsiCode`) | ✅                         |
-| Indentation    | ❌                | ✅                         | ✅                  | ✅                         |
+| ANSI colors    | ❌                | ✅                         | ✅ (`TreeAnsiCode`) | (uses built-in)           |
+| Indentation    | ❌                | ✅                         | ✅                  | (uses built-in)           |
 | Tree rendering |                  |                           |                    |                           |
 | ANSI colors    | ❌                | ✅                         | ❌                  | ✅                         |
 | Indentation    | ❌                | ✅                         | ❌                  | ✅                         |
