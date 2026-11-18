@@ -227,8 +227,8 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * want to allow your users to terminate with Ctrl+C) you can use this method.
       *
       * It would pretty print the last known state of MIO for debugging and consider
-      * `-Xmacro-settings:hearth.mioTerminationShouldUseReportError=true|false` option (false by default), which could
-      * be used to tell the macro whether it should use:
+      * `-Xmacro-settings:hearth.mioTerminationShouldUseReportError=true|false` option (true by default), which could be
+      * used to tell the macro whether it should use:
       *   - `Environment.reportErrorAndAbort` to terminate the macro expansion and show the error message using the
       *     reporter, which would terminate only the current macro,
       *   - or just print the error message to `stderr` and throw the exception to terminate the whole compilation

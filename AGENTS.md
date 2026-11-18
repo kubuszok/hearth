@@ -188,7 +188,7 @@ Agent: [Updates dev.properties to set ide.scala = 3]
 ### Binary Compatibility
 
 The project uses **MiMa** (Migration Manager) for binary compatibility checking, enabled against the last released
-version (`mimaPreviousVersion` in `build.sbt`, currently `0.4.0`).
+version (`mimaPreviousVersion` in `build.sbt`).
 
 When making changes:
 - Be aware of binary compatibility constraints
@@ -223,6 +223,8 @@ Agents should:
   listed as compile-time only, move that package to the runtime table - CI checks this on the compiled `hearth-tests`
   test classes (pass `--test-classes`/`--own-classes` to run it locally). See "Runtime and compile-time packages" in
   [Architecture overview](docs/contributing/architecture-overview.md)
+- **when the change is visible to users**, update the user guide and the `hearth` agent skills - see
+  [User documentation and agent skills](#user-documentation-and-agent-skills)
 - **also run regression tiers**: `sbt --client "quick-clean-next-lts ; quick-test-next-lts"` to verify
   against Scala 3.9 and 2.13.18. The Next tier (3.10) may have known compilation issues — check before running
 
@@ -230,6 +232,35 @@ If an agent was used to generate the code (e.g. following GitHub issue instructi
 but an agent was not able to run the compilation and tests (e.g. because GitHub sandboxing
 prevents downloading artifacts), it should inform user that any PR they would attempt to make
 will be closed immediately.
+
+### User documentation and agent skills
+
+Users learn Hearth from three sources, and all three must say the same thing:
+
+1. the user guide (`docs/user-guide/*.md`, published at <https://scala-hearth.readthedocs.io/>), including its
+   condensed overview for LLMs, `docs/user-guide/llms.txt`;
+2. Scaladoc on the public API;
+3. the agent skills of the `hearth` plugin in [kubuszok/agent-skills](https://github.com/kubuszok/agent-skills)
+   (`plugins/hearth/skills/hearth-*/`). The plugin's `README.md` maps each skill to the topics it covers. These skills
+   are for people who **use** Hearth (write macros with it, or use its runtime utilities). Skills for contributing to
+   Hearth stay in this repository (see [Skills](#skills)).
+
+Any change that affects how users use Hearth - a new or changed public API, a changed default, behaviour or error
+message, a new runtime utility, a new gotcha, a new workaround or a fixed bug that skills tell users to work around,
+a changed build setup - must:
+
+- update the user guide in the same change (and `llms.txt` when the change touches an API or a misconception it
+  lists);
+- update the affected skills in `kubuszok/agent-skills`. The skills describe the **released** version
+  (`metadata.library-version`), so do it in a separate branch/PR of that repository, merged when the Hearth version
+  ships, following that repository's `AGENTS.md` ("Updating after a library release"). A local checkout usually sits
+  next to this one (`../agent-skills`). If you cannot update the skills yourself, list in your final report (and the
+  PR description) which skills need which change, so nothing is lost;
+- remove or rewrite skill advice that the change makes obsolete. A skill that keeps recommending a workaround for a
+  fixed bug, or an API that was replaced, is worse than a missing skill.
+
+When a skill contradicts the user guide or the sources, the sources win: fix the skill, and fix the guide if it is
+wrong too.
 
 ### Code comments
 
@@ -513,6 +544,8 @@ Annotation values (e.g., `@MyAnnotation(42)`) can be structurally extracted via 
 
 ## Skills
 
-Are available in [contributing documentation](docs/contributing/_index.md).
+Skills for contributing to Hearth are available in [contributing documentation](docs/contributing/_index.md).
+Skills for using Hearth live in [kubuszok/agent-skills](https://github.com/kubuszok/agent-skills) - see
+[User documentation and agent skills](#user-documentation-and-agent-skills).
 
 The bug fix workflow is documented in [instruction for fixing a bug](docs/contributing/instruction-for-fixing-a-bug.md).

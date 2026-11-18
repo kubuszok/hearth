@@ -44,6 +44,8 @@ In order of importance:
 - Scala 2.13 only: `class MyMacro(val c: blackbox.Context) extends hearth.MacroCommonsScala2`, called from `def f = macro MyMacro.impl`.
 - Both: put the logic in a trait with self-type `this: MacroCommons =>`, add thin Scala 2 and Scala 3 adapters, and optionally use Cross Quotes.
 - Structure logic with `MIO` so errors are aggregated rather than aborting on the first one.
+- Preventing a derivation from summoning itself (`summonExprIgnoring` / `Expr.summonImplicitIgnoring`) needs Scala 2.13.17+ / 3.7.0+ where the macro expands - it throws on older compilers (incl. 2.13.16 and 3.3 LTS), so choose the supported Scala versions first.
+- Coding agents: the `hearth` plugin of the [kubuszok agent-skills marketplace](https://github.com/kubuszok/agent-skills) (`/plugin install hearth@kubuszok` in Claude Code; also for Codex, Cursor, OpenCode, Gemini CLI, ...) packages these docs as task-focused skills.
 
 ## Which API for which job
 

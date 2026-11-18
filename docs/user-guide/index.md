@@ -56,7 +56,7 @@ single Scala version needs neither the adapters nor the Cross Quotes plugin (see
     // Add the cross-quotes compiler plugin (but only on Scala 3, Scala 2.13 uses macros)
     libraryDependencies ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(compilerPlugin(
-        "com.kubuszok" % "hearth-cross-quotes" % "{{ hearth_version() }}_3"
+        "com.kubuszok" % "hearth-cross-quotes_3" % "{{ hearth_version() }}"
       ))
       case _            => Seq()
     }
@@ -65,12 +65,12 @@ single Scala version needs neither the adapters nor the Cross Quotes plugin (see
     // pass the right option to the macro/compiler plugin
     scalacOptions ++= CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((3, _)) => Seq(
-        // set to true OR file1.scala,file2.scala,...
+        // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
         // to debug cross-quotes generation on Scala 3
         "-P:hearth.cross-quotes:logging=false"
       )
       case Some((2, 13)) => Seq(
-        // set to true OR file1.scala,file2.scala,...
+        // set to true OR file1.scala|file2.scala|... (not commas: the compiler splits settings on commas)
         // to debug cross-quotes generation on Scala 2
         "-Xmacro-settings:hearth.cross-quotes.logging=false"
       )

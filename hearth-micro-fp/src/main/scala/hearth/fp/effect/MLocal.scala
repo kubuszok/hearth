@@ -84,9 +84,8 @@ object MLocal {
     * This is useful for caches and deduplication maps where parallel branches should see each other's entries rather
     * than independently building duplicate state.
     *
-    * The `join` function is still required because it is used both by [[MIO.parMap2]] (to combine branch results) and
-    * internally by [[MIO]]'s direct-style machinery. With shared-parallel fork semantics, branch B already includes
-    * branch A's writes, so `join` typically just needs to combine any independently-added entries (e.g. a cache merge).
+    * There is no `fork`/`join` to provide: since branch B already includes branch A's writes, the state after the
+    * parallel operation is simply the state left by its last branch.
     *
     * '''Unsafe''' because it breaks branch independence — the second branch depends on the first branch's execution
     * order. Not suitable for state where fork isolation matters (error counters, independent accumulators, etc.).

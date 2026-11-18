@@ -508,13 +508,13 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.hasAnnotationOfType[MyClass, Ann]`  | `Type[MyClass].hasAnnotationOfType[Ann]`  | `Boolean`                                    | has an annotation `<:< Ann` (3)         |
 | `Type.typeAnnotations[MyType]`            | `Type[MyType].typeAnnotations`            | `List[Expr_??]`                              | annotations in type position (4)        |
 | `Type.typeAnnotationsOfType[MyType, Ann]` | `Type[MyType].typeAnnotationsOfType[Ann]` | `List[Expr[Ann]]`                            | type-position annotations `<:< Ann` (4) |
-| `Type.typeArguments[List[Int]]`           | `Type[List[Int]].typeArguments`           | `List[??]`                                   | type arguments, e.g. `List(Type[Int])`  |
+| `Type.typeArguments[List[Int]]`           | —                                         | `List[??]`                                   | type arguments, e.g. `List(Type[Int])`  |
 | `Type.opaqueUnderlyingType[MyType]`       | `Type[MyType].opaqueUnderlyingType`       | `Option[??]`                                 | `Y` of `opaque type X = Y` (5)          |
 | `Type.classOfType[MyClass]`               | `Type[MyClass].getRuntimeClass`           | `Option[java.lang.Class[MyClass]]`           | runtime class, if on the classpath (6)  |
 | `Type.parents[MyClass]`                   | `Type[MyClass].parents`                   | `List[??]`                                   | direct parent types                     |
 | `Type.baseClasses[MyClass]`               | `Type[MyClass].baseClasses`               | `List[??]`                                   | all ancestors (linearization)           |
 | `Type.directChildren[MyClass]`            | `Type[MyClass].directChildren`            | `Option[ListMap[String, ??<:[MyClass]]]`     | immediate subtypes (1)                  |
-| `Type.directChildrenList[MyClass]`        | `Type[MyClass].directChildrenList`        | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, as a list (7)       |
+| `Type.directChildrenList[MyClass]`        | —                                         | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, as a list (7)       |
 | `Type.directChildrenInOrder[MyClass](o)`  | `Type[MyClass].directChildrenInOrder(o)`  | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, in order `o` (8)    |
 | `Type.exhaustiveChildren[MyClass]`        | `Type[MyClass].exhaustiveChildren`        | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                        |
 
@@ -654,13 +654,14 @@ On Scala 3-only code the same problem can be solved for any value with
 !!! example "`TypeCodec`'s `apply` and `unapply`"
 
     ```scala
-    // Creating a type from a literal value
-    val intType: Type[5] = Type(5)                // creates Type[5] (Int literal type)
-    val stringType: Type["hello"] = Type("hello") // creates Type["hello"] (String literal type)
+    // Creating a literal type from a value. Codecs are defined for the widened type (TypeCodec[Int],
+    // TypeCodec[String], ...), so ascribe Type[Int] - an expected Type[5] would pick the codec for objects instead
+    val five: Type[Int] = Type(5)                // the literal type 5 (prints as "5")
+    val hello: Type[String] = Type("hello")      // the literal type "hello"
 
     // Extracting a value from a literal type (if available)
-    Type.unapply[5](Type[5]) // Some(5)
-    Type.unapply[Int](Type[Int]) // None (not a literal type)
+    Type.unapply(five) // Some(5)
+    Type.unapply[Int](Type.of[Int]) // None (not a literal type)
     ```
 
 Built-in codecs exist for:
@@ -880,7 +881,7 @@ type EvalOverride[A] = Option[Expr[A] => Either[String, A]]
 
 `Expr.semiQuote[A: Type](value)` is the inverse of `semiEval` — it converts a runtime value to an expression tree
 at macro time. It handles built-in types (primitives, `String`, `BigInt`, `BigDecimal`, `Data`), singletons, case
-classes (via `Product.productElement` + `CaseClass.construct`), and sealed traits/enums (via runtime class name dispatch).
+classes (via `Product.productElement` + `CaseClass.construct`), and sealed traits/enums (singleton children are matched by value, other children by the value's runtime class).
 
 `Expr.semiQuote(value, overrides)` accepts `overrides: UntypedType => Existential[QuoteOverride]` for custom quoting
 of specific types.
@@ -1014,7 +1015,7 @@ Built-in codecs exist for:
 - Options: `Option[A]`, `Some[A]`, `None.type`
 - Either: `Either[L,R]`, `Left[L,R]`, `Right[L,R]`
 
-**Hearth internals** (bidirectional for `Data`, one-way `toExpr` for version/platform types):
+**Hearth internals** (bidirectional):
 
 - `data.Data`, `HearthVersion`, `JDKVersion`, `ScalaVersion`, `LanguageVersion`, `Platform`
 
@@ -1041,7 +1042,7 @@ Derivation supports:
 - **Sealed traits / enums** — runtime dispatch to the child type's codec, with automatic upcast
 - **Singletons** (case objects) — lifted directly via `SingletonValue.singletonExpr`
 - **Nested types** — handled recursively by `semiQuote` (e.g., a case class containing another case class)
-- **Implicit ExprCodec instances** — during derivation, the type is traversed and `ExprCodec[F]` is summoned from implicit scope for each nested type. Found instances are used as overrides in `semiEval`/`semiQuote`, so user-defined codecs are respected
+- **Implicit ExprCodec instances** — during derivation, the type is traversed and `ExprCodec[F]` is summoned from implicit scope for each nested type. Found instances are used as overrides in `semiEval`/`semiQuote`, so user-defined codecs are respected. The search happens in the implicit scope of the code expanding the macro (e.g. companion objects), so an `implicit val` declared inside your macro implementation is not seen - pass such codecs as `EvalOverride`/`QuoteOverride` to `semiEval`/`semiQuote` instead
 
 `toExpr` uses `semiQuote` with override maps built from implicit scope. `fromExpr` uses `semiEval` with matching overrides — it evaluates constructor calls, method invocations, and literals at macro time via reflection.
 
@@ -4160,9 +4161,10 @@ positions.sorted  // sorts by file path, then offset
        // Scala 3 macro position (non-nullary)
        ```
 
-    Hearth makes sure that the behavior is consistent and sane and aligns it to always point
-    to the first letter of the macro method name when you use `.line` or `.column`,
-    so you can get predictable behavior from e.g. `Environment.isExpandedAt`.
+    Hearth aligns `.line` and `.column` to point to the first letter of the macro method name for calls on an
+    instance or imported methods, so `Environment.isExpandedAt` behaves the same on both versions. For a call through
+    a prefix such as `MyObject.macroMethod(...)` Scala 3 still reports the column of `MyObject`, so prefer
+    `"File.scala:line"` (without a column) when selecting an expansion.
 
 ## Versions
 
@@ -4171,7 +4173,8 @@ e.g. for some feature discoverability. Hearth offers several utilities for that.
 
 ### `JDKVersion`
 
-Determines what is the JDK version in which the current macro expansion happens.
+`runtimeJDKVersion` is the JDK running the code (JVM only - on Scala.js/Native it fails at link time),
+`compiletimeJDKVersion` the JDK running the compiler. The major version is always `1` (JDK 21 is `JDKVersion(1, 21)`).
 
 !!! example
 
@@ -4180,11 +4183,12 @@ Determines what is the JDK version in which the current macro expansion happens.
     hearth.JDKVersion.compiletimeJDKVersion
     ```
 
-For obvious reasons, we do not recomment using it for production code in multiplatform projects.
+For obvious reasons, we do not recommend using it for production code in multiplatform projects.
 
 ### `ScalaVersion`
 
-Determines the Scala version (major, minor, patch) used in the current macro expansion.
+`byJVMRuntime` is the Scala version of the standard library on the runtime classpath (JVM only - on Scala.js/Native
+it fails at link time), `byCompileTime` the version of the compiler that compiled the call site.
 
 !!! example
 
@@ -4231,7 +4235,7 @@ Determines Hearth's version number, [`LanguageVersion`](#languageversion) and [`
     // HearthVersion(
     //   version = "{{ hearth_version() }}",
     //   languageVersion = ...,
-    //   Platform.JVM)
+    //   Platform.Jvm)
     HearthVersion.byHearthLibrary
     ```
 
@@ -4476,8 +4480,10 @@ The overloads taking a `Position` report at the given position instead of the ma
 parameter or argument (`expr.position`) that made the derivation fail.
 
 !!! note "Reporting Behavior"
-    For each level (INFO, WARN, ERROR), only **the first** call matters. Subsequent calls at the same level are no-ops.
-    This behavior is consistent between Scala 2 and Scala 3 macros.
+    Hearth passes every call straight to the compiler's reporter and does not de-duplicate anything, but the compilers
+    do: on both Scala 2 and Scala 3 only **the first** info reported at a position is shown. For errors they differ:
+    Scala 2 shows only the first error at a position (later calls, including `reportErrorAndAbort`, are no-ops), while
+    Scala 3 shows every error. Aggregate the messages and report them once to get the same result everywhere.
 
 ### Debug Helpers
 
@@ -4524,15 +4530,22 @@ from the classpath.
     ```scala
     package example
 
-    trait MyMacro { this: MacroCommons =>
+    // `extends`, not a self-type (`this: MacroCommons =>`): an extension receives `ctx: MyMacro` and can use
+    // `Type`, `Expr`, ... through `import ctx.*` only if they are members of `MyMacro`'s public type
+    trait MyMacro extends MacroCommons {
 
       // Loads all extensions, and passes itself to their `extend` method.
-      Environment.loadMacroExtensions[MyMacroExtension] match {
-        case Right(()) => // all extensions loaded successfully
-        case Left(errors) => // handle errors
+      // ExtensionLoadingResult: also has .fold(...), .toOption and .toMIO(allowFailures = ...)
+      Environment.loadMacroExtensions[MyMacroExtension].toEither match {
+        case Right(loaded) => // all extensions loaded successfully
+        case Left(errors)  => // handle errors (NonEmptyVector[Throwable])
       }
     }
     ```
+
+    Matching on `ExtensionLoadingResult`'s case classes (`AllLoaded`, `SomeFailed`, `LoaderFailed`) works, but on Scala 2
+    it warns that "The outer reference in this type test cannot be checked at run time" - `.toEither`, `.fold` or
+    `.toMIO(...)` avoid the warning.
 
     It requires `META-INF/services/example.MyMacroExtension` resource to list each extension's implementation
     on a separate line as a fully qualified class name, e.g.
@@ -4568,7 +4581,7 @@ When using Hearth's `MIO` effect system, handle Ctrl+C interruptions with:
     ```scala
     Environment.handleMioTerminationException {
       // Code that might be interrupted while running MIO
-      someMioComputation.unsafe.runToSync match ...
+      someMioComputation.unsafe.runSync match ...
     }
     ```
 
