@@ -139,7 +139,7 @@ jobs:
       - uses: coursier/setup-action@v3.1.0
         with:
           jvm: ${{ matrix.jvm }}
-          apps: sbt
+          apps: sbt scala-cli
       - name: "Clean, compile, test${{ matrix.tier == 'lts' && matrix.platform == 'jvm' && ', generate coverage report, check MiMa' || '' }}"
         run: |
           if [ "${{ matrix.tier }}" = "lts" ]; then
@@ -147,6 +147,13 @@ jobs:
           elif [ "${{ matrix.tier }}" = "next-lts" ]; then
             sbt quick-test-next-lts
           fi
+      - name: Check that code expanded by macros in tests refers only to packages the FAQ lists as needed at runtime
+        if: matrix.tier == 'lts' && matrix.platform == 'jvm'
+        run: |
+          target=hearth-tests/target/jvm-${{ matrix.scala == '2_13' && '2' || '3' }}
+          scala-cli run scripts/check-runtime-packages.scala -- \
+            --test-classes "$target/test-classes" \
+            --own-classes "$target/classes"
       - uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

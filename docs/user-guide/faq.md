@@ -260,7 +260,8 @@ the compiler, while macros are being expanded. Your application never loads it.
     Scala.js and Scala Native linkers keep only the code that is reachable from your program, so the compile-time
     part of Hearth is dropped from the output anyway.
 
-The tables below list packages, not single classes, so they stay valid when the library grows.
+The tables below list packages, not single classes, so they stay valid when the library grows. Our CI checks that the
+code which Hearth's macros generate in our test suite refers only to the packages listed as used at runtime.
 
 ### Used at runtime: keep
 

@@ -283,12 +283,33 @@ When you add a package to a published module, or move code between packages, upd
    runtime table, otherwise users who follow the FAQ will get a `NoClassDefFoundError`
  * classes added directly to the root `hearth` package are kept by the sbt-assembly example, so they are safe either way
 
-`scripts/check-runtime-packages.scala` (run in CI as "Check that the FAQ classifies every published package as runtime
-or compile-time") fails when a package of a published module is not covered by the tables, when the tables list a
-package that no longer exists, or when a published module is not mentioned. Run it locally with:
+`scripts/check-runtime-packages.scala` checks the tables in two ways:
 
-```bash
-scala-cli run scripts/check-runtime-packages.scala
-```
+ 1. it fails when a package of a published module is not covered by the tables, when the tables list a package that no
+    longer exists, or when a published module is not mentioned (the "Check that the FAQ classifies every published
+    package as runtime or compile-time" CI job):
 
-The script cannot tell whether a package is in the right group - that still needs a human (or agent) decision.
+    ```bash
+    scala-cli run scripts/check-runtime-packages.scala
+    ```
+
+ 2. given compiled `hearth-tests` classes, it also fails when a test class refers to a class from a package that the
+    tables do not list as needed at runtime (or in tests). `src/main` of `hearth-tests` holds the macro
+    implementations, while `src/test` holds the call sites, so test classes contain the code that macros expanded into -
+    the same code users' applications get. It runs in the JVM LTS rows of the CI build, after the tests:
+
+    ```bash
+    sbt --client "hearthTests/Test/compile ; hearthTests2/Test/compile"
+    scala-cli run scripts/check-runtime-packages.scala -- \
+      --test-classes hearth-tests/target/jvm-3/test-classes --own-classes hearth-tests/target/jvm-3/classes
+    scala-cli run scripts/check-runtime-packages.scala -- \
+      --test-classes hearth-tests/target/jvm-2/test-classes --own-classes hearth-tests/target/jvm-2/classes
+    ```
+
+    Some tests call compile-time APIs directly rather than through a macro, so the script skips their references:
+    references to `hearth-micro-fp` and `hearth-munit` (whole artifacts meant for macro code and for tests), and the
+    unit tests listed in `specsCallingCompileTimeApisDirectly`. Add a spec to that list only when it tests a
+    compile-time API directly - never to silence a reference that comes from an expanded macro.
+
+The script cannot tell whether a package is in the right group on its own - that still needs a human (or agent)
+decision; check 2 only catches the case where generated code needs a package the tables say can be removed.
