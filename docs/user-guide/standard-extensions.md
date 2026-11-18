@@ -1375,12 +1375,12 @@ IsCollection.parse[A] match {
     import isCollection.{Underlying as Item, value as isCollectionOf}
     // use isCollectionOf...
   case ProviderResult.Skipped(reasons) =>
-    // reasons: NonEmptyMap[String, Either[Throwable, String]]
+    // reasons: NonEmptyMap[String, Either[Throwable, () => String]]
     // Each entry maps a provider's fully-qualified class name to either:
-    //   Right(message) — the provider skipped this type with a reason
+    //   Right(message) — the provider skipped this type with a lazily computed reason
     //   Left(throwable) — the provider failed with an error
     val summary = reasons.toList.map {
-      case (provider, Right(msg)) => s"$provider: $msg"
+      case (provider, Right(msg)) => s"$provider: ${msg()}"
       case (provider, Left(err))  => s"$provider: error: ${err.getMessage}"
     }.mkString("\n")
     Environment.reportErrorAndAbort(
@@ -1392,7 +1392,7 @@ IsCollection.parse[A] match {
 `ProviderResult` is a sealed trait with two cases:
 
 - `ProviderResult.Matched(value)` — a provider recognized the type and returned a result
-- `ProviderResult.Skipped(reasons)` — no provider recognized the type; `reasons` is a `NonEmptyMap[String, Either[Throwable, String]]` mapping each provider's name to its skip reason
+- `ProviderResult.Skipped(reasons)` — no provider recognized the type; `reasons` is a `NonEmptyMap[String, Either[Throwable, () => String]]` mapping each provider's name to its skip reason (since 0.4.1 a reason is a lazy `() => String`, so a message built with `prettyPrint` costs nothing unless something renders it)
 
 `ProviderResult` supports `map`, `flatMap`, and `toOption` for composability.
 
@@ -1416,12 +1416,12 @@ Type[A] match {
     val eitherReasons = Option(IsEither.lastUnapplyFailure)
 
     def formatReasons(
-        reasons: Option[NonEmptyMap[String, Either[Throwable, String]]]
+        reasons: Option[NonEmptyMap[String, Either[Throwable, () => String]]]
     ): String =
       reasons.fold("(no providers registered)") { r =>
         r.toList.map {
           case (provider, Right(msg)) =>
-            s"  - $provider: $msg"
+            s"  - $provider: ${msg()}"
           case (provider, Left(err)) =>
             s"  - $provider: error: ${err.getMessage}"
         }.mkString("\n")
@@ -1436,7 +1436,7 @@ Type[A] match {
 }
 ```
 
-`lastUnapplyFailure` is a `NonEmptyMap[String, Either[Throwable, String]]` (or `null` after a successful match). It is available on `IsCollection`, `IsOption`, `IsEither`, `IsValueType`, `IsMap`, and `CtorLikes`.
+`lastUnapplyFailure` is a `NonEmptyMap[String, Either[Throwable, () => String]]` (or `null` after a successful match). It is available on `IsCollection`, `IsOption`, `IsEither`, `IsValueType`, `IsMap`, and `CtorLikes`.
 
 !!! tip
     Use `parse` when you focus on a single extractor and want to handle both matched and skipped cases directly.
@@ -1480,7 +1480,7 @@ Type[A] match {
             Expr(s"Matched: collection of ${Item.prettyPrint}")
           case ProviderResult.Skipped(reasons) =>
             val summary = reasons.toList.map {
-              case (_, Right(msg)) => msg
+              case (_, Right(msg)) => msg()
               case (_, Left(err))  => s"error: ${err.getMessage}"
             }.mkString("; ")
             Expr("Skipped: " + summary)
