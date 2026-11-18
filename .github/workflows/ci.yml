@@ -54,6 +54,9 @@ jobs:
       - uses: extractions/setup-just@v4
       - uses: coursier/setup-action@v3.1.0
         with:
+          # Pinned: the action's default JDK moved to 25, which Scala 2.13.16 cannot read
+          # ("Unsupported class file major version 69").
+          jvm: 'temurin:1.17.0.15'
           apps: scala-cli sbt
       - name: Run snippets from documentation
         working-directory: docs
