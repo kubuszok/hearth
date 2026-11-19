@@ -171,6 +171,13 @@ final class MioIntegrationsSpec extends MacroSuite {
           "MIO timeout is already set"
         )
       }
+
+      test("should run another expansion, started by the compiler in the middle of the run, with its own state") {
+        MioIntegrationsFixtures.testRunToExprOrFailWithAnotherExpansionInside <==> Data.map(
+          "innerResult" -> Data("1"),
+          "outerDeadlineKept" -> Data(true)
+        )
+      }
     }
   }
 }

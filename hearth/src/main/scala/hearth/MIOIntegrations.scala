@@ -15,8 +15,12 @@ trait MIOIntegrations { this: MacroTypedCommons =>
       * it installs the global timeout ([[Environment.withMioTimeout]]), configures benchmarking / flame-graph capture,
       * aggregates errors, threads the run's internal state, and renders the [[Log]] journal to the compiler reporters.
       * It must therefore be called '''exactly once''', at the top level of the expansion — it is deliberately '''not'''
-      * re-entrant, and nesting it (directly, or indirectly by summoning a macro-derived implicit while an outer run is
-      * still on the stack) throws a [[HearthAssertionError]].
+      * re-entrant, and calling it again inside a run of the same expansion throws a [[HearthAssertionError]].
+      *
+      * A run of ANOTHER expansion, that the compiler starts while this one is running, is not a nested call: e.g.
+      * summoning an implicit whose macro also calls `runToExprOrFail`, or (on Scala 2) the compiler typing a `val` with
+      * an inferred type to answer `knownDirectSubclasses`. That run gets its own timeout, benchmarking and logs, and
+      * the time it takes does not count towards this run's timeout.
       *
       * To compose a derivation that itself yields an `MIO` (the usual "derive a nested instance" case), stay inside the
       * one program: `flatMap` the inner `MIO` (or extract it with [[fp.DirectStyle]] / [[fp.effect.MIO.scoped]]), use
@@ -62,7 +66,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
           scala.concurrent.duration.FiniteDuration(2, java.util.concurrent.TimeUnit.SECONDS)
     )(
         renderFailure: (String, fp.data.NonEmptyVector[Throwable]) => String
-    ): Expr[A] = Environment.handleMioTerminationException {
+    ): Expr[A] = Environment.handleMioTerminationException(fp.effect.MIO.runOwnedBy(Environment) {
       Environment.configureMioBenchmarking()
       // When nothing will ever be rendered (all knobs DontRender, no error-failing, no benchmarking/flame graph),
       // the whole log tree is discarded — so skip building it and make logging a no-op to save allocations.
@@ -118,7 +122,7 @@ trait MIOIntegrations { this: MacroTypedCommons =>
           val fullMsg = Vector(Some(timeoutMsg), renderedLogs, flameGraphError).flatten.mkString("\n")
           Environment.reportErrorAndAbort(fullMsg)
       }
-    }
+    })
   }
 
   private def writeFlameGraphIfConfigured(macroName: String, state: fp.effect.MState): Option[String] =

@@ -479,6 +479,48 @@ object MIO {
   private[effect] case class OpenScope(name: String, scopeId: Int, start: Log.Timestamp)
   private[effect] var _openScopes: List[OpenScope] = Nil
 
+  /** The macro expansion whose top-level run currently owns the global state above, `null` when none does. */
+  private[hearth] var runOwner: AnyRef = null
+
+  /** Runs `thunk` (a top-level run of `owner`) with global state of its own when another expansion's run owns it.
+    *
+    * The global state belongs to ONE top-level run, but the Scala 2 compiler can start an independent expansion in the
+    * middle of another one: e.g. answering `knownDirectSubclasses` it may type a sibling `val` with an inferred type,
+    * expanding that `val`'s macro. That expansion gets fresh state, and the interrupted one gets its own back
+    * afterwards, with its deadline moved by the time the nested expansion took.
+    */
+  private[hearth] def runOwnedBy[A](owner: AnyRef)(thunk: => A): A =
+    if (runOwner == null || (runOwner eq owner)) thunk
+    else {
+      val savedBenchmarkScopes = benchmarkScopes
+      val savedDisableLogging = disableLogging
+      val savedMacroStartTimestamp = macroStartTimestamp
+      val savedTimeoutDeadlineNanos = timeoutDeadlineNanos
+      val savedOpenScopes = _openScopes
+      val savedRunOwner = runOwner
+      val nestedStart = System.nanoTime()
+      benchmarkScopes = false
+      disableLogging = false
+      macroStartTimestamp = Log.Timestamp.empty
+      timeoutDeadlineNanos = Long.MaxValue
+      _openScopes = Nil
+      runOwner = null
+      try thunk
+      finally {
+        benchmarkScopes = savedBenchmarkScopes
+        disableLogging = savedDisableLogging
+        macroStartTimestamp = savedMacroStartTimestamp
+        timeoutDeadlineNanos =
+          if (savedTimeoutDeadlineNanos == Long.MaxValue) Long.MaxValue
+          else {
+            val moved = savedTimeoutDeadlineNanos + (System.nanoTime() - nestedStart)
+            if (moved < savedTimeoutDeadlineNanos) Long.MaxValue - 1 else moved
+          }
+        _openScopes = savedOpenScopes
+        runOwner = savedRunOwner
+      }
+    }
+
   // --------------------------------------------- Implementation details ---------------------------------------------
 
   private def lift[A](result: MResult[A]): MIO[A] = defer(Pure(MState.empty, result))

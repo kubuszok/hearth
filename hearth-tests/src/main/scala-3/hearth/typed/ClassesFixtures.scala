@@ -63,6 +63,12 @@ object ClassesFixtures {
   ): Expr[String] =
     new ClassesFixtures(q).testEnumParMatchOnNestedQuote[A](expr, suffix)
 
+  inline def testEnumMatchOnWithTypedHelper[A](inline expr: A): String = ${
+    testEnumMatchOnWithTypedHelperImpl[A]('expr)
+  }
+  private def testEnumMatchOnWithTypedHelperImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testEnumMatchOnWithTypedHelper[A](expr)
+
   inline def testEnumMatchOnAndParMatchOn[A](inline expr: A): String = ${
     testEnumMatchOnAndParMatchOnImpl[A]('expr)
   }

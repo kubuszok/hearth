@@ -20,8 +20,55 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         if name.endsWith('$'.toString) then name.dropRight(1) else name
       }
 
+      /** Whether `module` is an object nested (possibly through other objects) in a class or trait: such an object is a
+        * member of an instance, not static.
+        */
+      private def isInstanceNestedModule(module: Symbol): Boolean = {
+        def ownedByInstance(owner: Symbol): Boolean =
+          if owner.isNoSymbol || owner.isPackageDef || !owner.isClassDef then false
+          else if owner.flags.is(Flags.Module) then ownedByInstance(owner.owner)
+          else true
+        module.flags.is(Flags.Module) && module.isClassDef && ownedByInstance(module.owner)
+      }
+
+      /** `symbol.typeRef`/`termRef` refer to a member through its owner's `this` (`Shape.this.Empty$`), which is only
+        * valid inside the owner. When the owner is an object nested in a class, the macro expands outside of it, and
+        * erasure fails to reach `Shape.this` ("missing outer accessor"), so we refer to such objects by their path from
+        * the enclosing class instead (`Outer.this.Shape.Empty$`).
+        */
+      private def throughModulePaths(tpe: TypeRepr): TypeRepr = tpe match {
+        case thisType: ThisType if isInstanceNestedModule(thisType.typeSymbol) =>
+          val moduleClass = thisType.typeSymbol
+          thisType.tref match {
+            case TypeRef(qualifier, _) => TermRef(throughModulePaths(qualifier), moduleClass.companionModule.name)
+            case _                     => tpe
+          }
+        case termRef @ TermRef(qualifier, _) =>
+          val rewritten = throughModulePaths(qualifier)
+          if rewritten eq qualifier then termRef else rewritten.select(termRef.termSymbol)
+        case typeRef @ TypeRef(qualifier, _) =>
+          val rewritten = throughModulePaths(qualifier)
+          if rewritten eq qualifier then typeRef else rewritten.select(typeRef.typeSymbol)
+        case AppliedType(tycon, args) =>
+          val rewritten = throughModulePaths(tycon)
+          if rewritten eq tycon then tpe else rewritten.appliedTo(args)
+        case _ => tpe
+      }
+
       /** Applies type arguments from supertype to subtype if there are any */
-      def subtypeTypeOf(instanceTpe: UntypedType, subtype: Symbol): UntypedType =
+      def subtypeTypeOf(instanceTpe: UntypedType, subtype: Symbol): UntypedType = {
+        val tpe = subtypeTypeOfSymbol(instanceTpe, subtype)
+        def ownedByInstanceNestedModule(owner: Symbol): Boolean =
+          !owner.isNoSymbol && !owner.isPackageDef &&
+            (isInstanceNestedModule(owner) || ownedByInstanceNestedModule(owner.owner))
+        if !ownedByInstanceNestedModule(subtype.owner) then tpe
+        else
+          // The `TypeRef`/`TermRef` extractors can throw on refs whose name kind does not match (e.g. Java enum values).
+          try throughModulePaths(tpe)
+          catch { case _: ClassCastException => tpe }
+      }
+
+      private def subtypeTypeOfSymbol(instanceTpe: UntypedType, subtype: Symbol): UntypedType =
         // A parameterless enum case is a `val`: the compiler refers to it with a `TermRef` (`Color.Red.type`), and only
         // that resolves the case's own `Mirror.Singleton` and `ValueOf`. A `TypeRef` on the term prints and compares
         // the same, but implicit search treats it as the enum.

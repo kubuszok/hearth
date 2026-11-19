@@ -277,7 +277,11 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
       * The MIO timeout is a SINGLE, global, top-level setting — like the error aggregation and the internal state
       * threaded by an MIO run. `withMioTimeout` (and [[MioExprOps.runToExprOrFail]], which calls it) must be entered
       * '''exactly once''', at the top level of a macro expansion. It is '''not''' re-entrant by design, and re-entering
-      * it is a contract violation (see the assertion below), not an implementation gap.
+      * it within the same expansion is a contract violation (a [[HearthAssertionError]]), not an implementation gap.
+      *
+      * Another expansion that the compiler starts while this one is running (summoning an implicit whose macro uses
+      * Hearth, or on Scala 2 typing a `val` with an inferred type to answer `knownDirectSubclasses`) runs with its own
+      * deadline, and the time it takes is added to this run's deadline.
       *
       * To compose derivations that themselves produce `MIO` values (e.g. summoning a macro-derived implicit
       * mid-derivation), stay INSIDE the one MIO program: extract values with `flatMap` (or [[fp.DirectStyle]] /
@@ -303,26 +307,31 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
     final def withMioTimeout[A](
         timeout: scala.concurrent.duration.FiniteDuration
     )(thunk: => A): Either[fp.effect.MIO.MioTimeoutException, A] = {
-      if (fp.effect.MIO.timeoutDeadlineNanos != Long.MaxValue)
+      if (fp.effect.MIO.timeoutDeadlineNanos != Long.MaxValue && (fp.effect.MIO.runOwner eq this))
         throw HearthAssertionError(
           "MIO timeout is already set — you are re-entering `runToExprOrFail`/`withMioTimeout` while one is already " +
-            "running. This is a MISUSE of the API, not a bug: the MIO timeout (like error aggregation and the run's " +
-            "internal state) is a single, top-level setting and is deliberately NOT re-entrant. Call " +
-            "`runToExprOrFail` exactly once, at the top level of the expansion. To compose a derivation that yields an " +
-            "MIO (e.g. a summoned macro-derived implicit), extract it with `flatMap`/`DirectStyle` and re-wrap the " +
-            "result in MIO instead of starting a nested run. `MIO.unsafe.runSync` sets up no global state and does not " +
-            "thread nested state — it is internal and must not be nested either.",
+            "running in the same macro expansion. This is a MISUSE of the API, not a bug: the MIO timeout (like error " +
+            "aggregation and the run's internal state) is a single, top-level setting and is deliberately NOT " +
+            "re-entrant. Call `runToExprOrFail` exactly once, at the top level of the expansion. To compose a " +
+            "derivation that yields an MIO, extract it with `flatMap`/`DirectStyle` and re-wrap the result in MIO " +
+            "instead of starting a nested run. `MIO.unsafe.runSync` sets up no global state and does not thread " +
+            "nested state — it is internal and must not be nested either.",
           hearthVersion = HearthVersion.byHearthLibrary,
           scalaVersion = currentScalaVersion,
           platform = currentPlatform,
           jdkVersion = currentJDKVersion
         )
-      fp.effect.MIO.timeoutDeadlineNanos = System.nanoTime() + timeout.toNanos
-      try Right(thunk)
-      catch {
-        case e: fp.effect.MIO.MioTimeoutException => Left(e)
-      } finally
-        fp.effect.MIO.timeoutDeadlineNanos = Long.MaxValue
+      fp.effect.MIO.runOwnedBy(this) {
+        fp.effect.MIO.timeoutDeadlineNanos = System.nanoTime() + timeout.toNanos
+        fp.effect.MIO.runOwner = this
+        try Right(thunk)
+        catch {
+          case e: fp.effect.MIO.MioTimeoutException => Left(e)
+        } finally {
+          fp.effect.MIO.timeoutDeadlineNanos = Long.MaxValue
+          fp.effect.MIO.runOwner = null
+        }
+      }
     }
 
     /** Runs `thunk` with MIO logging turned into no-ops: while active, `Log.info`/`warn`/`error` and `Log.namedScope`
