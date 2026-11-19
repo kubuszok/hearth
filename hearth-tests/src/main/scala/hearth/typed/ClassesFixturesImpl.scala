@@ -253,6 +253,26 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Each case passes the matched value to a local `def` whose parameter has the type of the matched child. */
+  def testEnumMatchOnWithTypedHelper[A: Type](expr: Expr[A]): Expr[String] =
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
+      implicit val StringType: Type[String] = stringType
+      enumm
+        .matchOn(expr) { matched =>
+          import matched.{Underlying as Subtype, value as matchedExpr}
+          val name = Expr(Subtype.shortName)
+          MIO.pure(Expr.quote {
+            def helper(child: Subtype): String = if (child == null) "null" else Expr.splice(name)
+            helper(Expr.splice(matchedExpr))
+          })
+        }
+        .map(_.getOrElse(Expr("<failed to perform exhaustive match>")))
+        .unsafe
+        .runSync
+        ._2
+        .fold(errors => Expr(s"<failed to construct: ${errors.mkString(", ")}>"), identity)
+    }
+
   def testEnumMatchOnAndParMatchOn[A: Type](expr: Expr[A]): Expr[String] =
     Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
       implicit val StringType: Type[String] = stringType

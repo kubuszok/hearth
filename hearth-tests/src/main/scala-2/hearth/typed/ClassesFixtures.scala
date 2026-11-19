@@ -37,6 +37,8 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
   def testEnumParMatchOnNestedQuoteImpl[A: c.WeakTypeTag](expr: c.Expr[A], suffix: c.Expr[String]): c.Expr[String] =
     testEnumParMatchOnNestedQuote[A](expr, suffix)
 
+  def testEnumMatchOnWithTypedHelperImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
+    testEnumMatchOnWithTypedHelper[A](expr)
   def testEnumMatchOnAndParMatchOnImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] =
     testEnumMatchOnAndParMatchOn[A](expr)
 
@@ -131,6 +133,7 @@ object ClassesFixtures {
   def testEnumParMatchOnNestedQuote[A](expr: A, suffix: String): String =
     macro ClassesFixtures.testEnumParMatchOnNestedQuoteImpl[A]
 
+  def testEnumMatchOnWithTypedHelper[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnWithTypedHelperImpl[A]
   def testEnumMatchOnAndParMatchOn[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnAndParMatchOnImpl[A]
 
   def testDependentEnumDiagnostic[A]: String =

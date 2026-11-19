@@ -737,6 +737,30 @@ trait MioIntegrationsFixturesImpl { this: hearth.MacroTypedCommons =>
   def testRunToExprOrFailNested: Expr[Int] =
     MIO(MIO(Expr(1)).runToExprOrFail("InnerMacro")(renderErrors)).runToExprOrFail("OuterMacro")(renderErrors)
 
+  /** Runs [[runToExprOrFailOfAnotherExpansion]] on a cake of its own, as a macro the compiler expands meanwhile would.
+    */
+  protected def runAnotherExpansion(): String
+
+  def runToExprOrFailOfAnotherExpansion: String =
+    Expr.plainPrint(MIO(Expr(1)).runToExprOrFail("InnerMacro")(renderErrors))
+
+  def testRunToExprOrFailWithAnotherExpansionInside: Expr[Data] =
+    MIO {
+      val deadlineBefore = MIO.timeoutDeadlineNanos
+      val innerResult = runAnotherExpansion()
+      val deadlineAfter = MIO.timeoutDeadlineNanos
+      Expr(
+        Data.map(
+          "innerResult" -> Data(innerResult),
+          "outerDeadlineKept" -> Data(deadlineAfter != Long.MaxValue && deadlineAfter >= deadlineBefore)
+        )
+      )
+    }.runToExprOrFail("OuterMacro")(renderErrors)
+
+  def testDirectChildrenNames[A: Type]: Expr[String] =
+    MIO(Expr(Enum.parse[A].toOption.fold("not sealed")(_.directChildren.keys.mkString(","))))
+      .runToExprOrFail("DirectChildren")(renderErrors)
+
   def testExtensionLoadingResultToMIO: Expr[Data] = {
     def processResult[A](result: MIO[ExtensionLoadingResult.Loaded[A]]): MIO[Data] =
       result.redeem(loaded =>

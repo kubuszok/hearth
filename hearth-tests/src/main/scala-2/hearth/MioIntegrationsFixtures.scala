@@ -18,6 +18,12 @@ final private class MioIntegrationsFixtures(val c: blackbox.Context)
   def testRunToExprOrFailIgnoresErrorLogByDefaultImpl: c.Expr[Int] = testRunToExprOrFailIgnoresErrorLogByDefault
   def testRunToExprOrFailTimeoutImpl: c.Expr[Int] = testRunToExprOrFailTimeout
   def testRunToExprOrFailNestedImpl: c.Expr[Int] = testRunToExprOrFailNested
+  def testRunToExprOrFailWithAnotherExpansionInsideImpl: c.Expr[Data] = testRunToExprOrFailWithAnotherExpansionInside
+  def testDirectChildrenNamesImpl[A: c.WeakTypeTag]: c.Expr[String] = testDirectChildrenNames[A]
+
+  override protected def runAnotherExpansion(): String = new MioIntegrationsFixtures(
+    c
+  ).runToExprOrFailOfAnotherExpansion
 }
 
 object MioIntegrationsFixtures {
@@ -33,4 +39,7 @@ object MioIntegrationsFixtures {
     macro MioIntegrationsFixtures.testRunToExprOrFailIgnoresErrorLogByDefaultImpl
   def testRunToExprOrFailTimeout: Int = macro MioIntegrationsFixtures.testRunToExprOrFailTimeoutImpl
   def testRunToExprOrFailNested: Int = macro MioIntegrationsFixtures.testRunToExprOrFailNestedImpl
+  def testRunToExprOrFailWithAnotherExpansionInside: Data =
+    macro MioIntegrationsFixtures.testRunToExprOrFailWithAnotherExpansionInsideImpl
+  def testDirectChildrenNames[A]: String = macro MioIntegrationsFixtures.testDirectChildrenNamesImpl[A]
 }

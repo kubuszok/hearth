@@ -1474,7 +1474,14 @@ longer (e.g. it loops), the expansion fails with an error saying that the macro 
 collected so far (and the flame graph, if [benchmarking](#benchmarking-scopes-and-flame-graphs) is enabled).
 Raise it for macros that legitimately do a lot of work: `mio.runToExprOrFail("MyMacro", timeout = 10.seconds)(...)`.
 `runToExprOrFail` should be called only once, at the top of the macro expansion - to use a value of another `MIO`
-inside the program, `flatMap` it (or use [`DirectStyle`](#directstyle)) instead of running it separately.
+inside the program, `flatMap` it (or use [`DirectStyle`](#directstyle)) instead of running it separately. Calling it
+again inside a run of the same expansion fails with `HearthAssertionError: MIO timeout is already set`.
+
+A run of *another* macro expansion, that the compiler starts while yours is running, is fine: e.g. when you summon an
+implicit provided by a macro that also uses Hearth, or when on Scala 2 reading the children of a sealed trait makes the
+compiler type a `val` whose type is inferred from a macro. That run gets its own timeout, benchmarking and logs, and the
+time it takes is not counted towards your timeout. (Before Hearth 0.4.6 it failed with
+`MIO timeout is already set`.)
 
 This utility also handles Ctrl+C signal - if you manage to write such a tail recursive computation, that the program would
 loop and only Ctrl+C would be a reasonable course of action, `MIO` would interrupt ongoing computations and fail. Without

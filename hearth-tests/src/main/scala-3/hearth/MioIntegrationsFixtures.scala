@@ -6,7 +6,14 @@ import hearth.data.Data
 
 import scala.quoted.*
 
-final private class MioIntegrationsFixtures(q: Quotes) extends MacroCommonsScala3(using q), MioIntegrationsFixturesImpl
+final private class MioIntegrationsFixtures(q: Quotes)
+    extends MacroCommonsScala3(using q),
+      MioIntegrationsFixturesImpl {
+
+  override protected def runAnotherExpansion(): String = new MioIntegrationsFixtures(
+    q
+  ).runToExprOrFailOfAnotherExpansion
+}
 
 object MioIntegrationsFixtures {
 
@@ -55,4 +62,14 @@ object MioIntegrationsFixtures {
   private def testRunToExprOrFailNestedImpl(using q: Quotes): Expr[Int] = new MioIntegrationsFixtures(
     q
   ).testRunToExprOrFailNested
+
+  inline def testRunToExprOrFailWithAnotherExpansionInside: Data = ${
+    testRunToExprOrFailWithAnotherExpansionInsideImpl
+  }
+  private def testRunToExprOrFailWithAnotherExpansionInsideImpl(using q: Quotes): Expr[Data] =
+    new MioIntegrationsFixtures(q).testRunToExprOrFailWithAnotherExpansionInside
+
+  inline def testDirectChildrenNames[A]: String = ${ testDirectChildrenNamesImpl[A] }
+  private def testDirectChildrenNamesImpl[A: Type](using q: Quotes): Expr[String] =
+    new MioIntegrationsFixtures(q).testDirectChildrenNames[A]
 }
