@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: coursier/setup-action@v3.1.0
+      - uses: coursier/setup-action@v3.1.1
         with:
           apps: scalafmt
       - name: Check code and docs formatting
@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-      - uses: coursier/setup-action@v3.1.0
+      - uses: coursier/setup-action@v3.1.1
         with:
           apps: scala-cli
       - name: Compare published packages with the FAQ tables
@@ -67,11 +67,11 @@ jobs:
           restore-keys: |
             snippets-coursier-${{ runner.os }}-
       - uses: extractions/setup-just@v4
-      - uses: coursier/setup-action@v3.1.0
+      - uses: coursier/setup-action@v3.1.1
         with:
           # Pinned: the action's default JDK moved to 25, which Scala 2.13.16 cannot read
           # ("Unsupported class file major version 69").
-          jvm: 'temurin:1.17.0.15'
+          jvm: 'temurin:17.0.15'
           apps: scala-cli sbt
       - name: Run snippets from documentation
         working-directory: docs
@@ -97,7 +97,7 @@ jobs:
       matrix:
         scala: ['2_13', '3']
         platform: ['jvm', 'js', 'native']
-        jvm: ['temurin:1.11.0.28', 'temurin:1.17.0.15', 'temurin:1.24.0.2', 'temurin:1.25.0.0']
+        jvm: ['temurin:11.0.28', 'temurin:17.0.15', 'temurin:24.0.2', 'temurin:25.0.0']
         tier: ['lts', 'next-lts', 'next']
         # Tier rows are JVM-only regression tests, not published.
         # Next tier is Scala 3 only (no 2.13 cross-compilation).
@@ -110,23 +110,23 @@ jobs:
             platform: 'native'
           # Next-LTS tier needs JDK 17+
           - tier: 'next-lts'
-            jvm: 'temurin:1.11.0.28'
+            jvm: 'temurin:11.0.28'
           # LTS excludes (same as before)
           - scala: '2_13'
-            jvm: 'temurin:1.25.0.0' # 2.13.16 does not work with JDK 25+
+            jvm: 'temurin:25.0.0' # 2.13.16 does not work with JDK 25+
           - scala: '2_13'
-            jvm: 'temurin:1.17.0.15' # No need to test 2.13 on JDK 17 separately
+            jvm: 'temurin:17.0.15' # No need to test 2.13 on JDK 17 separately
           - scala: '3'
             tier: 'lts'
-            jvm: 'temurin:1.24.0.2' # Scala 3 LTS does not need a workaround
+            jvm: 'temurin:24.0.2' # Scala 3 LTS does not need a workaround
           - scala: '3'
             tier: 'lts'
-            jvm: 'temurin:1.17.0.15' # JDK 17 not needed for LTS Scala 3
+            jvm: 'temurin:17.0.15' # JDK 17 not needed for LTS Scala 3
           # Avoid redundant Next-LTS x JDK combinations
           - tier: 'next-lts'
-            jvm: 'temurin:1.24.0.2'
+            jvm: 'temurin:24.0.2'
           - tier: 'next-lts'
-            jvm: 'temurin:1.25.0.0'
+            jvm: 'temurin:25.0.0'
       fail-fast: false
 
     name: "Scala: ${{ matrix.scala == '2_13' && '2.13' || '3' }} / Platform: ${{ matrix.platform }} / JVM: ${{ matrix.jvm }} / Tier: ${{ matrix.tier }}"
@@ -136,7 +136,7 @@ jobs:
         with:
           fetch-depth: 0
       - uses: coursier/cache-action@v9
-      - uses: coursier/setup-action@v3.1.0
+      - uses: coursier/setup-action@v3.1.1
         with:
           jvm: ${{ matrix.jvm }}
           apps: sbt scala-cli
