@@ -58,7 +58,7 @@ val only1VersionInIDE = dev.only1VersionInIDE :+ MatrixAction
   .ForPlatform(VirtualAxis.jvm)
   .Configure(
     _.settings(
-      // There is a bug in Scala Native 0.5.12 which crashes when seeing this flag, so we disable it for non-JVM.
+      // There is a bug in Scala Native 0.5.13 which crashes when seeing this flag, so we disable it for non-JVM.
       scalacOptions ++= { if (scalaVersion.value == versions.scala3) Seq("-Yfuture-lazy-vals") else Seq.empty }
     )
   )
