@@ -287,9 +287,10 @@ final class MethodsScala3Spec extends MacroSuite {
               "hearth.examples.methods.VecWithExtensionCopy: def copy(v: hearth.examples.methods.VecWithExtensionCopy)(x: scala.Double = <default>, y: scala.Double = <default>): hearth.examples.methods.VecWithExtensionCopy"
             )
           )
-          // The default of `y` reads the receiver.
+          // The default of `y` reads the receiver. The expected text comes from the same `toString`, because Scala.js
+          // prints `11.0` as `11`.
           MethodsFixtures.testCallWithReceiverAndX(new VecWithExtensionCopy(1.0, 2.0), "copy", 11.0) <==>
-            "Vec(11.0, 2.0)"
+            new VecWithExtensionCopy(11.0, 2.0).toString
         }
 
         test("for IArray[Int] extension method (should not crash)") {
