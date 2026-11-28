@@ -16,6 +16,9 @@ final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q)
   def ctorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
     testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
   @scala.annotation.nowarn("msg=unused local definition")
+  def quoteApplyingCtorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
+    testQuoteApplyingCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
+  @scala.annotation.nowarn("msg=unused local definition")
   def quoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
     testQuoteWithCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
 
@@ -239,6 +242,12 @@ object TypesFixtures {
   inline def testCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${ testCtorK1OfOwnTypeParameterImpl[Alg] }
   private def testCtorK1OfOwnTypeParameterImpl[Alg[_[_]]: Type](using q: Quotes): Expr[String] =
     new TypesFixtures(q).ctorK1OfOwnTypeParameter[Alg]
+
+  inline def testQuoteApplyingCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${
+    testQuoteApplyingCtorK1OfOwnTypeParameterImpl[Alg]
+  }
+  private def testQuoteApplyingCtorK1OfOwnTypeParameterImpl[Alg[_[_]]: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).quoteApplyingCtorK1OfOwnTypeParameter[Alg]
 
   inline def testQuoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${
     testQuoteWithCtorK1OfOwnTypeParameterImpl[Alg]

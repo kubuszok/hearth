@@ -803,7 +803,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             // So... if you have `object Foo`, the `Foo` is a `Term` and have a `Symbol` (via `.companionModule`),
             // while its type is `Foo.type` and it has another `Symbol` (via `.moduleClass`).
             // We need to use 2 of them in different places, so we have to pass a tuple.
-            (subtypeTypeOf(untyped, module.moduleClass), companionRef(untyped, module, isOpaque))
+            val ref = companionRef(untyped, module, isOpaque)
+            // A reference through the type's prefix (`Obj.Companion`) has to come with the type seen from that prefix,
+            // not with the module class seen from its owner (`Trait.this.Companion`), or the two do not match.
+            val companionTpe = ref.tpe match {
+              case TermRef(qualifier: TermRef, _) if !qualifier.termSymbol.flags.is(Flags.Package) => ref.tpe.widen
+              case _ => subtypeTypeOf(untyped, module.moduleClass)
+            }
+            (companionTpe, ref)
           }
       }
 

@@ -279,6 +279,13 @@ final class MethodsScala3Spec extends MacroSuite {
       group("methods: extension methods on Scala 3 types") {
         import MethodsFixtures.testMethodProperties
 
+        test("a member of an opaque type's representation, outside the opaque scope, builds into a Left") {
+          import examples.opaquevec.OpaqueVec
+
+          // Outside `opaquevec` an `OpaqueVec` has no `x`, so a call cannot be built - but the result is not a crash.
+          MethodsFixtures.testBuildNullaryMethodsNamed(OpaqueVec(1.0, 2.0), "x") <==> Data.list(Data("Left"))
+        }
+
         test("an extension method in the companion takes its receiver as the first parameter list") {
           import examples.methods.VecWithExtensionCopy
 

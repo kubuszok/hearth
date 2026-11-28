@@ -1298,15 +1298,19 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           pos = originalSymbol.pos,
           flags = c.internal.flags(originalSymbol)
         )
-        // The symbol of an alias or a type lambda fixing some arguments (`type L[F[_]] = Alg[F, String]`) is the aliased
-        // class, which takes a different number of type parameters - such a constructor is spliced as the type itself.
-        // `Any`/`Nothing` are kind-polymorphic, so they stand for any constructor through their symbol.
+        // `typeSymbol` of an alias or a type lambda fixing some arguments (`type L[F[_]] = Alg[F, String]`) is the
+        // aliased class, which takes a different number of type parameters. A named alias is spliced as the alias itself
+        // (as the source would name it); a lambda, which has no name, as the type itself. `Any`/`Nothing` are
+        // kind-polymorphic, so they stand for any constructor through their symbol.
         val ttag = c.parse(
           s"""{
              |  val hkt = $implicitValName.asUntyped.asInstanceOf[$ctx.universe.Type]
              |  val sym = hkt.typeSymbol
+             |  val alias = hkt.asInstanceOf[_root_.scala.reflect.internal.Types#Type].typeSymbolDirect
+             |    .asInstanceOf[$ctx.universe.Symbol]
              |  if (sym == $ctx.universe.definitions.AnyClass || sym == $ctx.universe.definitions.NothingClass ||
              |      sym.asType.typeParams.size == hkt.typeParams.size) $ctx.universe.Ident(sym)
+             |  else if (alias.isType && alias.asType.isAliasType) $ctx.universe.Ident(alias)
              |  else $ctx.universe.TypeTree(hkt)
              |}""".stripMargin
         )

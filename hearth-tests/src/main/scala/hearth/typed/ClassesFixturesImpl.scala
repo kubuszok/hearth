@@ -484,6 +484,20 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** The singleton children of `A`, as `Enum` lists them, referenced in the generated code. */
+  def testEnumChildrenSingletonsRoundTrip[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
+      val names: List[Expr[String]] = enumm.directChildren.toList.flatMap { case (_, child) =>
+        import child.Underlying as Child
+        Expr.singletonOf[Child].map(singleton => Expr.quote(Expr.splice(singleton).toString))
+      }
+      names
+        .reduceOption((a, b) => Expr.quote(Expr.splice(a) + ", " + Expr.splice(b)))
+        .getOrElse(Expr("<no singletons>"))
+    }
+  }
+
   def testSingletonRoundTrip[A: Type]: Expr[String] =
     SingletonValue.parse[A].toOption.fold(Expr("<no singleton>")) { singleton =>
       Expr.quote {

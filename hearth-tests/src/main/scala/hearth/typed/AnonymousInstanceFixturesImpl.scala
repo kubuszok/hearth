@@ -95,6 +95,26 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** Every override's body names its return type (`(null: Any).asInstanceOf[R]`), as a mock's stub does. */
+  def testAnonymousInstanceConstructNamingReturnTypes[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    def stub[R: Type]: Expr[R] = Expr.quote((null: Any).asInstanceOf[R])
+    AnonymousInstance.parse[A] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = (ai.mustOverride ++ ai.diamondConflicts).map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? = {
+              import ctx.returnType.Underlying as R
+              stub[R].as_??
+            }
+          }
+        }.toMap
+        constructAndSplice(ai, None, Map.empty, overrides)
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
   def testAnonymousInstanceConstructWithMixins[A: Type](mixin1: ??): Expr[String] = {
     implicit val IntType: Type[Int] = intTypeAI
     implicit val StringType: Type[String] = stringTypeAI

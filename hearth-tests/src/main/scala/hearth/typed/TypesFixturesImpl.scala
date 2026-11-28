@@ -878,6 +878,16 @@ trait TypesFixturesImpl { this: MacroCommons =>
   def testCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] =
     Expr(ctor.apply[Option](using Type.Ctor1.of[Option]).plainPrint)
 
+  /** Uses the macro's own type parameter `Alg`, applied to a witness constructor, as a lambda parameter's type. */
+  def testQuoteApplyingCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] = {
+    implicit val AlgCtor: Type.CtorK1[Alg] = ctor
+    Expr.quote {
+      val identity = (algebra: Alg[hearth.examples.kinds.Alias.WitnessCtor]) => algebra
+      hearth.fp.ignore(identity)
+      "applied"
+    }
+  }
+
   /** Uses the macro's own type parameter `Alg` as a type argument inside the generated code. */
   def testQuoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] = {
     implicit val AlgCtor: Type.CtorK1[Alg] = ctor

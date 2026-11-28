@@ -134,3 +134,14 @@ object eitheriterablethrowablector {
     def value: String = o
   }
 }
+
+/** An opaque type over a case class: outside this object, `OpaqueVec` does not have `VecPoint`'s members. */
+object opaquevec {
+
+  final case class VecPoint(x: Double, y: Double)
+
+  opaque type OpaqueVec = VecPoint
+  object OpaqueVec {
+    def apply(x: Double, y: Double): OpaqueVec = VecPoint(x, y)
+  }
+}

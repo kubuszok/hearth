@@ -72,11 +72,29 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       def subtypeTypeOf(instanceTpe: UntypedType, subtypeSymbol: TypeSymbol): UntypedType = {
         val sEta = subtypeSymbol.toType.etaExpand
 
-        sEta.finalResultType.substituteTypes(
-          sEta.baseType(instanceTpe.typeSymbol).typeArgs.map(_.typeSymbol),
-          // dealiased: an alias' type arguments need not line up with the parent's type parameters
-          instanceTpe.dealias.typeArgs
+        throughModulePaths(
+          sEta.finalResultType.substituteTypes(
+            sEta.baseType(instanceTpe.typeSymbol).typeArgs.map(_.typeSymbol),
+            // dealiased: an alias' type arguments need not line up with the parent's type parameters
+            instanceTpe.dealias.typeArgs
+          )
         )
+      }
+
+      /** A type built from a symbol refers to a member of an object through the object's `this` (`Shape.this.Empty`),
+        * which is valid only inside that object. For an object nested in a class, its own path (`Suite.this.Shape`) is
+        * valid wherever the class is - e.g. where a macro expands for a sealed trait declared inside a class.
+        */
+      def throughModulePaths(tpe: UntypedType): UntypedType = tpe match {
+        case ThisType(cls) if cls.isModuleClass && !cls.isStatic =>
+          c.internal.singleType(throughModulePaths(c.internal.thisType(cls.owner)), cls.asClass.module)
+        case TypeRef(prefix, sym, args) =>
+          val rewritten = throughModulePaths(prefix)
+          if (rewritten eq prefix) tpe else c.internal.typeRef(rewritten, sym, args)
+        case SingleType(prefix, sym) =>
+          val rewritten = throughModulePaths(prefix)
+          if (rewritten eq prefix) tpe else c.internal.singleType(rewritten, sym)
+        case _ => tpe
       }
 
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
@@ -402,9 +420,23 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val typeParamTypes: List[UntypedType] = newTypeParamSyms.map(_.asType.toType)
 
         val selfIdent: UntypedExpr = q"this"
-        val bodyExpr = ovr.body(selfIdent, paramRefs.flatten, resultType, typeParamTypes, isThisTypeReturn)
+        // The body cannot name the parent's `this` (`Parent.this.Embedded`) inside the new instance, so it gets the
+        // projection (`Parent#Embedded`) instead, and its result is cast to the member's own type (`this.Embedded`),
+        // which is the same class after erasure.
+        val resultMentionsParentThis = mentionsParentThis(resultType)
+        val resultTypeForBody =
+          if (!resultMentionsParentThis) resultType
+          else
+            resultType.map {
+              case TypeRef(prefix, typeSym, args) if isParentThis(prefix) =>
+                c.internal.typeRef(targetType, typeSym, args)
+              case other => other
+            }
+        val bodyExpr0 = ovr.body(selfIdent, paramRefs.flatten, resultTypeForBody, typeParamTypes, isThisTypeReturn)
 
         val returnTpt: Tree = if (isThisTypeReturn) tq"this.type" else typeTreeInNewInstance(resultType)
+        val bodyExpr: Tree =
+          if (resultMentionsParentThis && !isThisTypeReturn) q"($bodyExpr0).asInstanceOf[$returnTpt]" else bodyExpr0
 
         // An abstract `val` must be overridden with a `val`, not a `def` ("stable, immutable value required"). A val
         // member has no parameter lists or type parameters, so emit a plain ValDef carrying the override's body.

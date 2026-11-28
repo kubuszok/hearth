@@ -488,6 +488,16 @@ trait MethodsFixturesImpl { this: MacroCommons =>
     results.reduceOption((a, b) => Expr.quote(Expr.splice(a) + " | " + Expr.splice(b))).getOrElse(Expr("<no method>"))
   }
 
+  /** Builds a call of every nullary method named `methodName` on `instance`; reports `Left`s instead of failing. */
+  def testBuildNullaryMethodsNamed[A: Type](instance: Expr[A], methodName: Expr[String]): Expr[Data] = {
+    val name = Expr.unapply(methodName).getOrElse(Environment.reportErrorAndAbort("Method name must be a literal"))
+    val results = Method.unsortedMethodsNamed[A](name).filter(_.isNullary).map { method =>
+      val built = method.fold(onInstance = _ => instance.as_??, onTypes = _ => Map.empty, onValues = _ => Map.empty)
+      Data(built.fold(_ => "Left", _ => "Right"))
+    }
+    Expr(Data.list(results*))
+  }
+
   def testCallInstanceViaFold[A: Type](instance: Expr[A])(methodName: Expr[String])(
       params: VarArgs[Int]
   ): Expr[Data] = {

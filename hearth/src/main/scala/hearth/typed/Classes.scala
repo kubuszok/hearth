@@ -766,7 +766,9 @@ trait Classes { this: MacroCommons =>
     private lazy val unapplyCache = new Type.Cache[Result]
     def unapply[A](tpe: Type[A]): Option[Enum[A]] =
       unapplyCache.getOrPut(tpe) {
-        if (tpe.isSealed || tpe.isEnumeration || tpe.isUnionType)
+        // A Java enum read from a class file is flagged sealed on Scala 3 only once its constants are completed, which
+        // listing its children does - so it cannot be told by `isSealed` before that.
+        if (tpe.isSealed || tpe.isJavaEnum || tpe.isEnumeration || tpe.isUnionType)
           tpe.directChildren.filter(_.nonEmpty).map(children => new Enum(tpe, children))
         else None
       }
@@ -779,7 +781,7 @@ trait Classes { this: MacroCommons =>
       unapply(Type[A]) match {
         case Some(e) => ClassViewResult.Compatible(e)
         case None    =>
-          if (Type.isSealed[A] || Type.isEnumeration[A] || Type.isUnionType[A]) {
+          if (Type.isSealed[A] || Type.isJavaEnum[A] || Type.isEnumeration[A] || Type.isUnionType[A]) {
             // For refused unions we might know an actionable reason (e.g. members that need a TypeTest) -
             // unionRefusalReason is Scala 3-only and always None on Scala 2.
             val reason = Type.unionRefusalReason[A].fold("")(r => s": $r")

@@ -879,7 +879,8 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     For the same reason, using [kind-projector](https://github.com/typelevel/kind-projector) on Scala 2 cannot be supported.
     The exception is a macro's own type parameter (`def derived[Alg[_[_]]]`): a type alias or a kind-projector lambda
     fixing some of the arguments (`type L[F[_]] = Alg[F, String]`, `Lambda[F[_] => Alg[F, String]]`) passed for it
-    works with `Type.CtorK1.of[Alg]` and as a type argument inside `Expr.quote`.
+    works with `Type.CtorK1.of[Alg]` and as a type argument inside `Expr.quote`. Applying it inside `Expr.quote`
+    (`Alg[F]` in the quoted code) works for an alias, but not for a lambda.
 
     We might improve the support for type constructors in the future but
     **full support for arbitrary type aliases and kind projections will probably never be possible**.
