@@ -77,6 +77,12 @@ object AnonymousInstanceFixtures {
   private def testAnonymousInstanceCapturedOverrideImpl(captured: Expr[String])(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceCapturedOverride(captured)
 
+  inline def testAnonymousInstanceConstructNamingReturnTypes[A]: String = ${
+    testAnonymousInstanceConstructNamingReturnTypesImpl[A]
+  }
+  private def testAnonymousInstanceConstructNamingReturnTypesImpl[A: Type](using q: Quotes): Expr[String] =
+    new AnonymousInstanceFixtures(q).testAnonymousInstanceConstructNamingReturnTypes[A]
+
   inline def testAnonymousInstanceOverrideParameterTypes: String = ${ testAnonymousInstanceOverrideParameterTypesImpl }
   private def testAnonymousInstanceOverrideParameterTypesImpl(using q: Quotes): Expr[String] =
     new AnonymousInstanceFixtures(q).testAnonymousInstanceOverrideParameterTypes

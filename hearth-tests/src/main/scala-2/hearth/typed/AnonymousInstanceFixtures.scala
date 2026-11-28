@@ -43,6 +43,9 @@ final private class AnonymousInstanceFixtures(val c: blackbox.Context)
 
   def testAnonymousInstanceOverrideParameterTypesImpl: c.Expr[String] = testAnonymousInstanceOverrideParameterTypes
 
+  def testAnonymousInstanceConstructNamingReturnTypesImpl[A: c.WeakTypeTag]: c.Expr[String] =
+    testAnonymousInstanceConstructNamingReturnTypes[A]
+
   def testAnonymousInstanceOverrideUsingParamsImpl(captured: c.Expr[String]): c.Expr[String] =
     testAnonymousInstanceOverrideUsingParams(captured)
 
@@ -113,6 +116,9 @@ object AnonymousInstanceFixtures {
 
   def testAnonymousInstanceCapturedOverride(captured: String): String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceCapturedOverrideImpl
+
+  def testAnonymousInstanceConstructNamingReturnTypes[A]: String =
+    macro AnonymousInstanceFixtures.testAnonymousInstanceConstructNamingReturnTypesImpl[A]
 
   def testAnonymousInstanceOverrideParameterTypes: String =
     macro AnonymousInstanceFixtures.testAnonymousInstanceOverrideParameterTypesImpl

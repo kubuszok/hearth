@@ -1075,7 +1075,18 @@ trait Methods { this: MacroCommons =>
         *   the built expression of type [[Returned]], or `Left` describing why validation/building failed
         */
       def build(): Either[String, Expr[Returned]] =
-        validateAndBuild().map(_.asTyped[Returned])
+        validateAndBuild().flatMap { built =>
+          // The compiler types the built call itself, and may disagree with the type Hearth expected - e.g. a member of
+          // an opaque type's representation, called outside the opaque scope.
+          try Right(built.asTyped[Returned])
+          catch {
+            case scala.util.control.NonFatal(error) =>
+              Left(
+                s"The call of ${asUntyped.name} does not have the expected type ${Type.prettyPrint[Returned]}: " +
+                  String.valueOf(error.getMessage).linesIterator.map(_.trim).filter(_.nonEmpty).mkString(" ")
+              )
+          }
+        }
     }
     object Result {
 

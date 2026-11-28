@@ -2258,6 +2258,12 @@ final class TypesSpec extends MacroSuite {
         testQuoteWithCtorK1OfOwnTypeParameter[examples.kinds.Alias.HigherKindedFixedExtra] <==> "constructed"
       }
 
+      test("Expr.quote applying Alg to a witness constructor keeps an alias fixing an extra type parameter") {
+        import TypesFixtures.testQuoteApplyingCtorK1OfOwnTypeParameter
+        testQuoteApplyingCtorK1OfOwnTypeParameter[examples.kinds.HigherKinded1] <==> "applied"
+        testQuoteApplyingCtorK1OfOwnTypeParameter[examples.kinds.Alias.HigherKindedFixedExtra] <==> "applied"
+      }
+
       test("Type.CtorK1.of[Alg] of an alias fixing an extra type parameter keeps the fixed argument") {
         testCtorK1OfOwnTypeParameter[examples.kinds.Alias.HigherKindedFixedExtra] <==>
           "hearth.examples.kinds.HigherKindedWithExtra[scala.Option, java.lang.String]"

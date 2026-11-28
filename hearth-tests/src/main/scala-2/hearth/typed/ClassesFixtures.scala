@@ -96,6 +96,8 @@ final private class ClassesFixtures(val c: blackbox.Context) extends MacroCommon
 
   def testCaseClassDefaultValuesAtRuntimeImpl[A: c.WeakTypeTag]: c.Expr[String] = testCaseClassDefaultValuesAtRuntime[A]
 
+  def testEnumChildrenSingletonsRoundTripImpl[A: c.WeakTypeTag]: c.Expr[String] = testEnumChildrenSingletonsRoundTrip[A]
+
   def testEnumMatchOnAsChildImpl[A: c.WeakTypeTag](expr: c.Expr[A]): c.Expr[String] = testEnumMatchOnAsChild[A](expr)
 
   def testJavaBeanSummaryImpl[A: c.WeakTypeTag]: c.Expr[Data] = testJavaBeanSummary[A]
@@ -192,6 +194,8 @@ object ClassesFixtures {
   def testEnumMatchOnRuntime[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnRuntimeImpl[A]
 
   def testCaseClassDefaultValuesAtRuntime[A]: String = macro ClassesFixtures.testCaseClassDefaultValuesAtRuntimeImpl[A]
+
+  def testEnumChildrenSingletonsRoundTrip[A]: String = macro ClassesFixtures.testEnumChildrenSingletonsRoundTripImpl[A]
 
   def testEnumMatchOnAsChild[A](expr: A): String = macro ClassesFixtures.testEnumMatchOnAsChildImpl[A]
 

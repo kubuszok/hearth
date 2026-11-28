@@ -88,6 +88,8 @@ object functions {
 // format: off
 object Alias {
   type HigherKindedFixedExtra[F[_]] = HigherKindedWithExtra[F, String]
+  // A witness constructor, as derivations use to stand for "any F" when applying an algebra.
+  type WitnessCtor[A] = Any
   type Renamed1[A] = Arity1[A]
   type Extra1[A] = Unit
   type FixedFront1[A] = Arity2[Unit, A]

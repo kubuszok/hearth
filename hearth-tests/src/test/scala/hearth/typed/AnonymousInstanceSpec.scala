@@ -298,6 +298,12 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithEmbedded] <==> "success"
         }
 
+        test("trait with methods using an inner type of the trait, with bodies naming the return type") {
+          AnonymousInstanceFixtures.testAnonymousInstanceConstructNamingReturnTypes[
+            examples.anonymous_instances.TraitWithEmbedded
+          ] <==> "success"
+        }
+
         test("abstract class without args") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.AbstractClassNoArgs] <==> "success"
         }

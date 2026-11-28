@@ -28,4 +28,10 @@ final class ClassNestedHierarchySpec extends MacroSuite {
 
     testSingletonRoundTrip[Shape.Empty.type] <==> "Empty"
   }
+
+  test("SingletonValue[A] of a child listed by Enum[A] should refer to a case object of a companion inside a class") {
+    import ClassesFixtures.testEnumChildrenSingletonsRoundTrip
+
+    testEnumChildrenSingletonsRoundTrip[Shape] <==> "Empty"
+  }
 }
