@@ -24,9 +24,11 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # An unpinned app is resolved to `latest.stable` from Maven Central in every job, which gets rate-limited (429).
+      - uses: coursier/cache-action@v9
       - uses: coursier/setup-action@v3.1.1
         with:
-          apps: scalafmt
+          apps: scalafmt:3.11.5 # the `version` in .scalafmt.conf
       - name: Check code and docs formatting
         run: scalafmt --check
 
@@ -39,9 +41,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+      - uses: coursier/cache-action@v9
       - uses: coursier/setup-action@v3.1.1
         with:
-          apps: scala-cli
+          apps: scala-cli:1.19.0
       - name: Compare published packages with the FAQ tables
         run: scala-cli run scripts/check-runtime-packages.scala
 
@@ -72,7 +75,7 @@ jobs:
           # Pinned: the action's default JDK moved to 25, which Scala 2.13.16 cannot read
           # ("Unsupported class file major version 69").
           jvm: 'temurin:17.0.15'
-          apps: scala-cli sbt
+          apps: scala-cli:1.19.0 sbt
       - name: Run snippets from documentation
         working-directory: docs
         run: |
@@ -139,7 +142,7 @@ jobs:
       - uses: coursier/setup-action@v3.1.1
         with:
           jvm: ${{ matrix.jvm }}
-          apps: sbt scala-cli
+          apps: sbt scala-cli:1.19.0
       - name: "Clean, compile, test${{ matrix.tier == 'lts' && matrix.platform == 'jvm' && ', generate coverage report, check MiMa' || '' }}"
         run: |
           if [ "${{ matrix.tier }}" = "lts" ]; then
