@@ -253,5 +253,59 @@ final class ClassesJvmSpec extends MacroSuite {
              |  examplejavaclass
              |}""".stripMargin)
     }
+    group("Enum[A] of a Java enum read from a class file") {
+      import ClassesFixtures.{testChildrenInOrder, testEnumMatchOnRuntime}
+
+      test("lists every constant, also when nothing in the compilation refers to one") {
+        // Nothing in this module refers to a constant of `AccessMode`.
+        testChildrenInOrder[java.nio.file.AccessMode] <==> Data.map(
+          "declarationWhenAvailable" -> Data.list(Data("READ"), Data("WRITE"), Data("EXECUTE")),
+          "byName" -> Data.list(Data("EXECUTE"), Data("READ"), Data("WRITE")),
+          "byName (extension method)" -> Data.list(Data("EXECUTE"), Data("READ"), Data("WRITE"))
+        )
+      }
+
+      test("lists the constants in declaration order, also when the compilation refers to some of them") {
+        val referred = java.time.format.TextStyle.SHORT_STANDALONE
+        assert(referred.ordinal == 3)
+        val declared = List("FULL", "FULL_STANDALONE", "SHORT", "SHORT_STANDALONE", "NARROW", "NARROW_STANDALONE")
+        testChildrenInOrder[java.time.format.TextStyle] <==> Data.map(
+          "declarationWhenAvailable" -> Data(declared.map(Data(_))),
+          "byName" -> Data(declared.sorted.map(Data(_))),
+          "byName (extension method)" -> Data(declared.sorted.map(Data(_)))
+        )
+      }
+
+      test("matches on a Java enum compiled in the same run and on one read from a class file") {
+        // Passing a constant straight to the macro would let scalac fold the scrutinee and flag the other cases.
+        def sameRun(value: examples.enums.ExampleJavaEnum) = testEnumMatchOnRuntime(value)
+        def classFile(value: java.util.concurrent.TimeUnit) = testEnumMatchOnRuntime(value)
+        sameRun(examples.enums.ExampleJavaEnum.VALUE2) <==>
+          "hearth.examples.enums.ExampleJavaEnum.VALUE2.type: VALUE2 / hearth.examples.enums.ExampleJavaEnum.VALUE2.type: VALUE2"
+        classFile(java.util.concurrent.TimeUnit.SECONDS) <==>
+          "java.util.concurrent.TimeUnit.SECONDS.type: SECONDS / java.util.concurrent.TimeUnit.SECONDS.type: SECONDS"
+      }
+
+      test("matches on a Java enum handing out the matched value typed as the constant") {
+        import ClassesFixtures.testEnumMatchOnAsChild
+        def sameRun(value: examples.enums.ExampleJavaEnum) = testEnumMatchOnAsChild(value)
+        def classFile(value: java.util.concurrent.TimeUnit) = testEnumMatchOnAsChild(value)
+        sameRun(examples.enums.ExampleJavaEnum.VALUE2) <==> "VALUE2"
+        classFile(java.util.concurrent.TimeUnit.SECONDS) <==> "SECONDS"
+      }
+
+      test("handles a Java enum nested in a Java class") {
+        val declared = List("NEW", "RUNNABLE", "BLOCKED", "WAITING", "TIMED_WAITING", "TERMINATED")
+        testChildrenInOrder[java.lang.Thread.State] <==> Data.map(
+          "declarationWhenAvailable" -> Data(declared.map(Data(_))),
+          "byName" -> Data(declared.sorted.map(Data(_))),
+          "byName (extension method)" -> Data(declared.sorted.map(Data(_)))
+        )
+        ClassesFixtures.testSingletonExpr[java.lang.Thread.State] <==> "<no singleton>"
+        def nested(value: java.lang.Thread.State) = testEnumMatchOnRuntime(value)
+        nested(java.lang.Thread.State.BLOCKED) <==>
+          "java.lang.Thread.State.BLOCKED.type: BLOCKED / java.lang.Thread.State.BLOCKED.type: BLOCKED"
+      }
+    }
   }
 }

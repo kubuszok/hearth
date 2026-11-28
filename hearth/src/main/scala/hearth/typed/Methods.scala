@@ -129,7 +129,11 @@ trait Methods { this: MacroCommons =>
       *
       * @since 0.4.0
       */
-    lazy val byNameUnderlying: Option[??] = asUntyped.byNameUnderlying.map(UntypedType.as_??)
+    lazy val byNameUnderlying: Option[??] =
+      if (!isByName) None
+      // From `tpe`, which has the type arguments of the class and of the method applied, unlike the declaration.
+      else
+        UntypedType.byNameUnderlying(tpe.Underlying.asUntyped).orElse(asUntyped.byNameUnderlying).map(UntypedType.as_??)
   }
 
   /** Ordered map of [[Parameter]]s by their name.

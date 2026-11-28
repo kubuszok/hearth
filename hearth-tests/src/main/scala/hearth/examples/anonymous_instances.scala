@@ -175,3 +175,12 @@ trait TraitWithVarargMethod {
 private[anonymous_instances] trait PackagePrivateTrait {
   def value: Int
 }
+
+/** A trait whose abstract method mentions an inner type of the trait: the override's type is `this.Embedded` of the new
+  * instance, not a projection.
+  */
+trait TraitWithEmbedded {
+  trait Embedded { def m(x: Int, y: Double): String }
+  def referencesEmbedded(): Embedded
+  def takesEmbedded(embedded: Embedded): Int
+}

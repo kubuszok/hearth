@@ -169,9 +169,19 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
     override def singletonOf[A: Type]: Option[Expr[A]] = {
       val tpe = Type[A].tpe
       val sym = tpe.typeSymbol
+      // A reference built from the symbol alone goes through its owner's `this` (`Shape.this.Empty`), which compiles
+      // only inside the owner; the prefix of the type (`Suite.this.Shape.Empty`) is valid where the type was written.
+      def refThroughPrefix(term: Symbol): Tree =
+        if (term.isStatic) c.universe.internal.gen.mkAttributedRef(term)
+        else
+          tpe.dealias match {
+            case SingleType(prefix, _) if prefix != NoPrefix   => c.universe.internal.gen.mkAttributedRef(prefix, term)
+            case TypeRef(prefix, _, Nil) if prefix != NoPrefix => c.universe.internal.gen.mkAttributedRef(prefix, term)
+            case _                                             => c.universe.internal.gen.mkAttributedRef(term)
+          }
       if (sym.isModuleClass) {
         val moduleSym = sym.asClass.module
-        Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(moduleSym)))
+        Some(c.Expr[A](refThroughPrefix(moduleSym)))
       }
       // $COVERAGE-OFF$ defensive branch: in practice typeSymbol returns module class, not module
       else if (sym.isModule) {
@@ -181,7 +191,7 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
       else {
         // For singleton types of stable terms (e.g. Enumeration values like WeekDay.Mon.type)
         val termSym = tpe.termSymbol
-        if (termSym != NoSymbol) Some(c.Expr[A](c.universe.internal.gen.mkAttributedRef(termSym)))
+        if (termSym != NoSymbol) Some(c.Expr[A](refThroughPrefix(termSym)))
         // For Java enum value types like ExampleJavaEnum(VALUE1) from directChildren
         else if (UntypedType.isJavaEnumValue(tpe)) {
           import Type.platformSpecific.javaEnumRegexpFormat
@@ -282,6 +292,18 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
           case Block(stats, expr) =>
             evalBlock(stats, expr, locals, overrides)
+
+          // A Java class has no companion module at runtime: its static members are fields of the class itself, so a
+          // qualified `JavaClass.member` cannot be evaluated by first evaluating `JavaClass`.
+          case Select(qualifier, name)
+              if tree.symbol != null && tree.symbol != NoSymbol && tree.symbol.isJava && tree.symbol.isStatic &&
+                tree.symbol.isTerm && !tree.symbol.isMethod && !tree.symbol.isModule &&
+                qualifier.symbol != null && qualifier.symbol.isModule =>
+            val fieldName = name.decodedName.toString
+            UntypedType
+              .toClass(qualifier.symbol.companion.asType.toType)
+              .flatMap(javaClass => scala.util.Try(javaClass.getField(fieldName).get(null)).toOption)
+              .toRight(NonEmptyVector.one(s"Cannot resolve static field: ${tree.symbol.fullName}"))
 
           case _
               if tree.symbol != null && tree.symbol != NoSymbol &&
@@ -1498,8 +1520,15 @@ trait ExprsScala2 extends Exprs { this: MacroCommonsScala2 =>
 
     override def eqValue[A: Type](expr: Expr[A], freshName: FreshName): MatchCase[Expr[A]] = {
       val name = freshTerm[A](freshName, expr)
-      val matched: Expr[A] = c.Expr[A](q"$name")
-      EqValue(name, matched.as_??, expr.as_??, matched)
+      val binder: Expr[A] = c.Expr[A](q"$name")
+      val matched: Expr[A] = expr.tree match {
+        // The binder of a Java enum constant's pattern (`case x @ READ`) is typed as the enum, not as the constant's
+        // own type that the handler was promised (and a cast to the constant's type is widened as well). In this case
+        // the literal is the matched value, so the handler gets the literal.
+        case Literal(Constant(_: Symbol)) => expr
+        case _                            => binder
+      }
+      EqValue(name, binder.as_??, expr.as_??, matched)
     }
 
     override def typeTestMatch[A: Type, B: Type](freshName: FreshName): MatchCase[Expr[B]] =

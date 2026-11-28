@@ -15,6 +15,9 @@ final private class TypesFixtures(q: Quotes) extends MacroCommonsScala3(using q)
   @scala.annotation.nowarn("msg=unused local definition") // left behind by the plugin's `CtorK1.of` expansion
   def ctorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
     testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
+  @scala.annotation.nowarn("msg=unused local definition")
+  def quoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]: scala.quoted.Type]: Expr[String] =
+    testQuoteWithCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
 
   /** `Type.CtorN.fromUntyped` has to match an ordinary alias of a type application (also of an opaque type) just like
     * the dealiased type - without unwrapping the opaque type itself.
@@ -236,6 +239,12 @@ object TypesFixtures {
   inline def testCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${ testCtorK1OfOwnTypeParameterImpl[Alg] }
   private def testCtorK1OfOwnTypeParameterImpl[Alg[_[_]]: Type](using q: Quotes): Expr[String] =
     new TypesFixtures(q).ctorK1OfOwnTypeParameter[Alg]
+
+  inline def testQuoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = ${
+    testQuoteWithCtorK1OfOwnTypeParameterImpl[Alg]
+  }
+  private def testQuoteWithCtorK1OfOwnTypeParameterImpl[Alg[_[_]]: Type](using q: Quotes): Expr[String] =
+    new TypesFixtures(q).quoteWithCtorK1OfOwnTypeParameter[Alg]
 
   inline def testLazyTypeScopeSafety: Data = ${ testLazyTypeScopeSafetyImpl }
   private def testLazyTypeScopeSafetyImpl(using q: Quotes): Expr[Data] =

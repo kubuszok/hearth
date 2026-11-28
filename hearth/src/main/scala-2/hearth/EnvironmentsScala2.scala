@@ -148,7 +148,11 @@ trait EnvironmentsScala2 extends Environments { this: MacroCommonsScala2 =>
         )
         // A lazy val is owned by its accessor, a method whose signature is `=> A`.
       } else if (symbol.isTerm && (symbol.asTerm.isVal || symbol.asTerm.isVar || symbol.asTerm.isLazy)) {
-        val tpe: UntypedType = symbol.typeSignature.finalResultType
+        // A value without a type ascription is being typed while its right-hand side (with this macro call) is
+        // expanded: reading its signature now would be a cyclic reference.
+        val tpe: UntypedType =
+          if (UntypedType.platformSpecific.isBeingTyped(symbol)) c.universe.definitions.AnyTpe
+          else symbol.typeSignature.finalResultType
         Some(Enclosure.Value(decodedName(symbol), Some(symbol.fullName), positionOf(symbol), UntypedType.as_??(tpe)))
       } else if (symbol.isMethod)
         // Result type kept None for cross-platform parity with Scala 3 (where `Symbol.info` is @experimental).

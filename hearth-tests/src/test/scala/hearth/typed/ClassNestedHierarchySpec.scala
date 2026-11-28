@@ -22,4 +22,10 @@ final class ClassNestedHierarchySpec extends MacroSuite {
     code(Shape.Square(1.0)) <==> "Square"
     code(Circle(1.0)) <==> "Circle"
   }
+
+  test("SingletonValue[A] should refer to a case object of a companion declared inside a class") {
+    import ClassesFixtures.testSingletonRoundTrip
+
+    testSingletonRoundTrip[Shape.Empty.type] <==> "Empty"
+  }
 }

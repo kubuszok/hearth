@@ -36,6 +36,11 @@ final class EnclosuresSpec extends MacroSuite {
   trait SelfTyped { this: SelfProvider =>
     def selfTypeMembers: Data = EnclosuresFixtures.testEnclosingClassHasSelfTypeMember
   }
+  trait DepProvider { def depProvided: Int }
+  trait SelfTypedWithDeclared { this: DepProvider =>
+    def depDeclared: Int = 1
+    def declaredMembers: Data = EnclosuresFixtures.testEnclosingClassDeclaredMembers
+  }
 
   // The macro is expanded inside a method that declares local vals BEFORE the call (and one AFTER, which must not be
   // discovered). Defined as plain methods (not test lambdas) to avoid synthetic `$anonfun` owners.
@@ -106,6 +111,10 @@ final class EnclosuresSpec extends MacroSuite {
     val valueChain: Data = EnclosuresFixtures.testEnclosingScope
     lazy val lazyValueChain: Data = EnclosuresFixtures.testEnclosingScope
     val valueType: String = EnclosuresFixtures.testEnclosingValueType
+    // No type ascriptions: the types of these members are inferred from the macro expansion.
+    val untypedValueChain = EnclosuresFixtures.testEnclosingScope
+    lazy val untypedLazyValueChain = EnclosuresFixtures.testEnclosingScope
+    def untypedDefChain = EnclosuresFixtures.testEnclosingScope
     def inLambda: Data = List(1).map(_ => EnclosuresFixtures.testEnclosingScope).head
   }
   trait TraitNest {
@@ -224,6 +233,11 @@ final class EnclosuresSpec extends MacroSuite {
         val instance = new SelfTyped with SelfProvider { def fromSelfType: Int = 1 }
         instance.selfTypeMembers <==> Data(true)
       }
+
+      test("tells the enclosing trait's own members from the ones of its self-type") {
+        val instance = new SelfTypedWithDeclared with DepProvider { def depProvided: Int = 2 }
+        instance.declaredMembers <==> Data.map("depDeclared" -> Data(true), "depProvided" -> Data(false))
+      }
     }
 
     group("Environment.enclosingScope local values (macwire case), expected behavior") {
@@ -283,6 +297,24 @@ final class EnclosuresSpec extends MacroSuite {
 
       test("gives a value enclosure the declared type of the value") {
         ValueNest.valueType <==> "java.lang.String"
+      }
+
+      test("works for a val, lazy val and def without a type ascription holding the macro call") {
+        ValueNest.untypedValueChain <==> Data.list(
+          Data.map("kind" -> Data("value"), "name" -> Data("untypedValueChain")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+        ValueNest.untypedLazyValueChain <==> Data.list(
+          Data.map("kind" -> Data("value"), "name" -> Data("untypedLazyValueChain")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
+        ValueNest.untypedDefChain <==> Data.list(
+          Data.map("kind" -> Data("method"), "name" -> Data("untypedDefChain")),
+          Data.map("kind" -> Data("object"), "name" -> Data("ValueNest")),
+          Data.map("kind" -> Data("class"), "name" -> Data("EnclosuresSpec"))
+        )
       }
 
       test("skips a lambda between the expansion and the enclosing method") {

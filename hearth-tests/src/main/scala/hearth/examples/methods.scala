@@ -155,3 +155,8 @@ class ExampleBeanLikeNames {
   def setValue(v: Int): Unit = { val _ = v }
   def settle(v: Int): Unit = { val _ = v } // NOT a setter: lowercase 't' after `set`
 }
+
+/** A by-name parameter whose type mentions the class's type parameter. */
+trait ByNameAlgebra[F[_]] {
+  def whenM(cond: F[Boolean])(action: => F[Unit]): F[Unit]
+}

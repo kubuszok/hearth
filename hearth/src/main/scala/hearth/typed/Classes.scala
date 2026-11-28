@@ -1093,7 +1093,8 @@ trait Classes { this: MacroCommons =>
     *
     *   - `self` — a reference to the `$anon` instance being constructed (`this`),
     *   - `method` — the abstract method being overridden,
-    *   - `parameters` — references to the override's own value parameters, typed with their resolved types,
+    *   - `parameters` — references to the override's own value parameters, typed with their resolved types (on Scala 3
+    *     with the parameter's singleton type, e.g. `s.type`, which conforms to them),
     *   - `returnType` — the override's result type, fully resolved against the instance type and the method's
     *     (re-bound) type parameters. For a generic method with a concrete declared return (e.g. `def f[T](t: T):
     *     String`) this is the concrete type, NOT `Any`; for `def f[T](t: T): T` it is the re-bound `T`,
@@ -1301,6 +1302,16 @@ trait Classes { this: MacroCommons =>
           val effectiveParents = if (parentTypes.isEmpty) List(instanceTpe) else parentTypes
 
           val overrideList = overrides.toList.map { case (untypedMethod, body) =>
+            // Scala 2 hands out the parameters as untyped references (typed `Nothing`), so they are typed with the
+            // declared parameter types instead.
+            lazy val declaredParamTypes: List[??] =
+              UntypedMethod.toTyped[A](untypedMethod).totalParameters.flatMap(_.values.map(_.tpe))
+            def typedParams(params: List[UntypedExpr]): List[Expr_??] =
+              params.zipWithIndex.map { case (param, idx) =>
+                val typed = param.as_??
+                if (!(typed.Underlying =:= Type.of[Nothing])) typed
+                else declaredParamTypes.lift(idx).fold(typed)(tpe => UntypedExpr.as_??(param, tpe.Underlying.asUntyped))
+              }
             UntypedType.UntypedOverride(
               untypedMethod,
               // The platform tree generator supplies the return type and type parameters resolved against the
@@ -1316,7 +1327,7 @@ trait Classes { this: MacroCommons =>
                 val ctx = OverrideContext(
                   self = selfExpr.as_??,
                   method = untypedMethod,
-                  parameters = params.map(_.as_??),
+                  parameters = typedParams(params),
                   returnType = returnTpe.as_??,
                   typeParameters = typeParams.map(_.as_??),
                   returnsThisType = returnsThisType

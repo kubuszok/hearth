@@ -66,6 +66,52 @@ final class ClassesScala3Spec extends MacroSuite {
       }
     }
 
+    group("CaseClass[A] of a generic tuple") {
+      import ClassesFixtures.testClassViewParseReasons
+
+      val genericTupleReasons = Data.map(
+        "asSingleton" -> Data("is not a singleton type"),
+        "asNamedTuple" -> Data("is not a named tuple"),
+        "asCaseClass" -> Data("is not a case class"),
+        "asEnum" -> Data("is sealed/enumeration/union but has no direct children"),
+        "asJavaBean" -> Data("is not a plain old Java object"),
+        "asClass" -> Data("<compatible>")
+      )
+
+      test("a *: chain is not parsed as a case class (it is not a TupleN class)") {
+        testClassViewParseReasons[Int *: String *: EmptyTuple] <==> genericTupleReasons
+      }
+
+      test("a tuple of more than 22 elements is not parsed as a case class") {
+        type T23 = (
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int,
+            Int
+        )
+        testClassViewParseReasons[T23] <==> genericTupleReasons
+      }
+    }
+
     test("Enum[A].{matchOn and parMatchOn} should match on the Scala 3 enum") {
       import ClassesFixtures.testEnumMatchOnAndParMatchOn
 

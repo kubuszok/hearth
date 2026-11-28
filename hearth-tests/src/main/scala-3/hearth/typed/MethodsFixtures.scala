@@ -157,6 +157,13 @@ object MethodsFixtures {
   private def testMethodPrettyPrintImpl[A: Type](methodName: Expr[String])(using q: Quotes): Expr[Data] =
     new MethodsFixtures(q).testMethodPrettyPrint[A](methodName)
 
+  inline def testCallWithReceiverAndX[A](inline instance: A, inline methodName: String, inline x: Double): String = ${
+    testCallWithReceiverAndXImpl[A]('instance, 'methodName, 'x)
+  }
+  private def testCallWithReceiverAndXImpl[A: Type](instance: Expr[A], methodName: Expr[String], x: Expr[Double])(using
+      q: Quotes
+  ): Expr[String] = new MethodsFixtures(q).testCallWithReceiverAndX[A](instance, methodName, x)
+
   inline def testCallInstanceViaFold[A](inline instance: A)(inline methodName: String)(inline params: Int*): Data = ${
     testCallInstanceViaFoldImpl[A]('instance, 'methodName, 'params)
   }

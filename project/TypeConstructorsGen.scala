@@ -500,7 +500,23 @@ object TypeConstructorsGen {
     sb ++= s"            scala.quoted.Type.of[HKT[${allParams(n)}]].asInstanceOf[Type[HKT[${allParams(n)}]]]\n"
     sb ++= s"          }\n"
 
-    sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
+    // Filters by the bounds: the extraction below finds the constructor by its symbol and does not look at them.
+    val boundReprs = (1 to n)
+      .map(i => s"(TypeRepr.of[${ArityGen.lower(i)}], TypeRepr.of[${ArityGen.upper(i)}])")
+      .mkString(", ")
+    val resultArgs = if (n == 1) "List(result)" else "result.asInstanceOf[Product].productIterator.toList"
+    sb ++= s"          def unapply[A](A: Type[A]): Option[${boundsTuple(n)}] =\n"
+    sb ++= s"            unapplyIgnoringBounds(A).filter(result => withinBounds($resultArgs))\n"
+    sb ++= s"          private def withinBounds(args: List[Any]): Boolean = {\n"
+    sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
+    sb ++= s"            import quotes.reflect.*\n"
+    sb ++= s"            val argReprs = args.map(arg => TypeRepr.of[Any](using arg.asInstanceOf[??].value.asInstanceOf[scala.quoted.Type[Any]]))\n"
+    sb ++= s"            argReprs.zip(List($boundReprs)).forall {\n"
+    sb ++= s"              case (_: TypeBounds, _) => true\n"
+    sb ++= s"              case (arg, (lower, upper)) => lower <:< arg && arg <:< upper\n"
+    sb ++= s"            }\n"
+    sb ++= s"          }\n"
+    sb ++= s"          private def unapplyIgnoringBounds[A](A: Type[A]): Option[${boundsTuple(n)}] = {\n"
     sb ++= s"            given quotes: scala.quoted.Quotes = CrossQuotes.ctx\n"
 
     // Fast path (perf): when the scrutinee's dealiased head symbol IS the constructor's, the type is HKT applied to

@@ -74,6 +74,10 @@ final private class TypesFixtures(val c: blackbox.Context) extends MacroCommonsS
     testCtor2OfOwnTypeParameter[F](Type.Ctor2.of[F])
   def testCtorK1OfOwnTypeParameterImpl[Alg[_[_]]](implicit Alg: c.WeakTypeTag[Alg[Option]]): c.Expr[String] =
     testCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
+  def testQuoteWithCtorK1OfOwnTypeParameterImpl[Alg[_[_]]](implicit
+      Alg: c.WeakTypeTag[Alg[Option]]
+  ): c.Expr[String] =
+    testQuoteWithCtorK1OfOwnTypeParameter[Alg](Type.CtorK1.of[Alg])
 
   def testLazyTypeScopeSafetyImpl: c.Expr[Data] = testLazyTypeScopeSafety
   def testBuiltInPredicatesImpl[A: c.WeakTypeTag]: c.Expr[Data] = testBuiltInPredicates[A]
@@ -150,6 +154,8 @@ object TypesFixtures {
   def testCtor1OfOwnTypeParameter[F[_]]: String = macro TypesFixtures.testCtor1OfOwnTypeParameterImpl[F]
   def testCtor2OfOwnTypeParameter[F[_, _]]: String = macro TypesFixtures.testCtor2OfOwnTypeParameterImpl[F]
   def testCtorK1OfOwnTypeParameter[Alg[_[_]]]: String = macro TypesFixtures.testCtorK1OfOwnTypeParameterImpl[Alg]
+  def testQuoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]]: String =
+    macro TypesFixtures.testQuoteWithCtorK1OfOwnTypeParameterImpl[Alg]
 
   def testLazyTypeScopeSafety: Data = macro TypesFixtures.testLazyTypeScopeSafetyImpl
 

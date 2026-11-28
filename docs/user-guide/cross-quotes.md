@@ -187,6 +187,11 @@ You can also specify bounds:
     val bounded = Type.Ctor1.Bounded.of[Nothing, String, Option]
     ```
 
+`unapply` of a bounded constructor matches only types whose arguments are within the bounds
+(`upperBounded.unapply(Type.of[Option[Int]])` is `None`). On Scala 2 a bound which is an abstract type parameter of the
+code creating the constructor, with no `Type` of it in scope, cannot be checked and does not restrict the match; on
+Scala 3 a constructor created with `fromUntyped` does not check the bounds either.
+
 #### Partial Application with `setA`, `setB`, ...
 
 For type constructors with 2 or more type parameters, you can fix one parameter at a time to produce a smaller type constructor:
@@ -872,6 +877,9 @@ Since Cross-Quotes rewrites some code into the native macro representations of e
     (There is a best-effort approach that matches a `Type` against a type alias only when it's using that exact alias, with no unaliasing, widening, etc).
 
     For the same reason, using [kind-projector](https://github.com/typelevel/kind-projector) on Scala 2 cannot be supported.
+    The exception is a macro's own type parameter (`def derived[Alg[_[_]]]`): a type alias or a kind-projector lambda
+    fixing some of the arguments (`type L[F[_]] = Alg[F, String]`, `Lambda[F[_] => Alg[F, String]]`) passed for it
+    works with `Type.CtorK1.of[Alg]` and as a type argument inside `Expr.quote`.
 
     We might improve the support for type constructors in the future but
     **full support for arbitrary type aliases and kind projections will probably never be possible**.

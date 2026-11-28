@@ -94,8 +94,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
 
   object UntypedParameter extends UntypedParameterModule {
 
+    private def isExtensionReceiver(method: UntypedMethod, symbol: Symbol): Boolean =
+      method.symbol.flags.is(Flags.ExtensionMethod) &&
+        method.symbol.paramSymss.find(!_.exists(_.isType)).exists(_.contains(symbol))
+
     def parse(method: UntypedMethod, symbol: Symbol, index: Int): Either[String, UntypedParameter] =
-      if symbol.flags.is(Flags.Param) then Right(new UntypedParameter(method, symbol, index))
+      // The receiver of an extension method is a parameter of the method, but it does not carry `Flags.Param`.
+      if symbol.flags.is(Flags.Param) || isExtensionReceiver(method, symbol) then Right(
+        new UntypedParameter(method, symbol, index)
+      )
       else Left(s"Expected param Symbol, got $symbol")
   }
 
@@ -137,13 +144,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
             method.symbol
           )
           else safeMemberType(instanceTpe, method.symbol).appliedTo(instanceTypeArgs)
-        // Extension methods have a receiver parameter as the first value parameter list in their type,
-        // which was already dropped from `parameters` — skip it here too to keep names aligned.
-        if method.symbol.flags.is(Flags.ExtensionMethod) then raw match {
-          case MethodType(_, _, inner) => inner
-          case other                   => other
-        }
-        else raw
+        raw
       }
       def collectAllParamTypes(tpe: TypeRepr): Map[String, TypeRepr] = tpe match {
         case MethodType(names, types, res) => names.zip(types).toMap ++ collectAllParamTypes(res)
@@ -328,8 +329,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
       } else {
         // Walk paramSymss in order to preserve clause interleaving
         val paramss = symbol.paramSymss
-        val isExtension = symbol.flags.is(Flags.ExtensionMethod)
-        var skippedExtensionReceiver = !isExtension
         var valueParamAccum = List.newBuilder[ListMap[String, UntypedParameter]]
         val indices = paramss.filterNot(_.exists(_.isType)).flatten.zipWithIndex.toMap
 
@@ -346,8 +345,6 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
           if paramList.exists(_.isType) then {
             flushValues()
             steps += UntypedMethodExpectation.NeedsTypes(List(paramList))
-          } else if !skippedExtensionReceiver then {
-            skippedExtensionReceiver = true
           } else {
             val parsed = ListMap.from(paramList.flatMap { param =>
               UntypedParameter.parse(this, param, indices.getOrElse(param, 0)).toOption.map(p => param.name -> p)
@@ -426,10 +423,7 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
     }
 
     override lazy val parameters: UntypedParameters = {
-      val paramss0 = symbol.paramSymss.filterNot(_.exists(_.isType))
-      // Extension methods have a receiver parameter as the first value parameter list,
-      // which doesn't have Flags.Param and would fail UntypedParameter.parse
-      val paramss = if symbol.flags.is(Flags.ExtensionMethod) then paramss0.drop(1) else paramss0
+      val paramss = symbol.paramSymss.filterNot(_.exists(_.isType))
       val indices = paramss.flatten.zipWithIndex.toMap
       paramss
         .map(inner =>
@@ -554,16 +548,12 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         }
       } else {
         val paramss = symbol.paramSymss
-        val isExtension = symbol.flags.is(Flags.ExtensionMethod)
-        var skippedExtensionReceiver = !isExtension
         var valueListIdx = 0
         val segments = List.newBuilder[String]
 
         paramss.foreach { paramList =>
           if paramList.exists(_.isType) then {
             segments += "[" + paramList.map(renderTypeParam).mkString(", ") + "]"
-          } else if !skippedExtensionReceiver then {
-            skippedExtensionReceiver = true
           } else {
             if valueListIdx < paramListsWithTypes.length then {
               val typedList = paramListsWithTypes(valueListIdx)
@@ -1148,12 +1138,15 @@ trait UntypedMethodsScala3 extends UntypedMethods { this: MacroCommonsScala3 =>
         .flatMap { s =>
           val isSetter = s.name.endsWith("_=")
           val fieldName = if isSetter then s.name.dropRight(2) else s.name
+          // Fields are matched by name, and a method can overload a field's name (`def paths(p: Paths)` next to the
+          // field `paths`): only the member without value parameters is the field itself.
+          val isField = !isSetter && !(s.isDefDef && s.paramSymss.exists(_.exists(_.isTerm)))
           val module = moduleBySymbol.get(s)
           UntypedMethod.parseOption(
             isDeclared = declared(s) && !methodsConsideredSynthetic(s),
-            isConstructorArgument = constructorArguments.contains(fieldName) && !isSetter,
-            constructorArgumentIndex = if isSetter then None else constructorArguments.get(fieldName),
-            isCaseField = caseFields(fieldName) && !isSetter,
+            isConstructorArgument = constructorArguments.contains(fieldName) && isField,
+            constructorArgumentIndex = if isField then constructorArguments.get(fieldName) else None,
+            isCaseField = caseFields(fieldName) && isField,
             module = module
           )(s)
         }

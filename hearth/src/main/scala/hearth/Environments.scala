@@ -721,6 +721,9 @@ trait Environments extends EnvironmentCrossQuotesSupport { env: MacroCommons =>
 
     /** An enclosing `val`/`var`/`lazy val`.
       *
+      * On Scala 2, for a value without a type ascription whose right-hand side contains the macro call, [[tpe]] is
+      * `Any`: its type is being inferred while the macro expands.
+      *
       * @since 0.4.0
       */
     final case class Value(

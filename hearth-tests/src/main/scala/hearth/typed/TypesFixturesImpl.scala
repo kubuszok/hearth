@@ -878,6 +878,17 @@ trait TypesFixturesImpl { this: MacroCommons =>
   def testCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] =
     Expr(ctor.apply[Option](using Type.Ctor1.of[Option]).plainPrint)
 
+  /** Uses the macro's own type parameter `Alg` as a type argument inside the generated code. */
+  def testQuoteWithCtorK1OfOwnTypeParameter[Alg[_[_]]](ctor: Type.CtorK1[Alg]): Expr[String] = {
+    implicit val AlgCtor: Type.CtorK1[Alg] = ctor
+    Expr.quote {
+      val container: hearth.crossquotes.ContainerK1[Alg] = new hearth.crossquotes.ContainerK1[Alg] {
+        override def value: String = "constructed"
+      }
+      container.value
+    }
+  }
+
   // The deferred type must behave like an eagerly-initialized one even when its FIRST touch happens
   // inside an `Expr.splice` (a fresh nested Quotes on Scala 3) and it is then reused OUTSIDE that splice - the
   // pattern that breaks a plain `lazy val` with "Expression created in a splice was used outside of that splice".

@@ -31,6 +31,9 @@ trait Arity23[A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, 
 
 trait HigherKinded1[F[_]]
 
+/** A higher-kinded algebra with an extra, plain type parameter. */
+trait HigherKindedWithExtra[F[_], A]
+
 /** Non-generic supertype of [[MyTC]], so that macro fixtures can splice `instance.name` without referencing the phantom
   * constructor label in generated trees.
   */
@@ -84,6 +87,7 @@ object functions {
 
 // format: off
 object Alias {
+  type HigherKindedFixedExtra[F[_]] = HigherKindedWithExtra[F, String]
   type Renamed1[A] = Arity1[A]
   type Extra1[A] = Unit
   type FixedFront1[A] = Arity2[Unit, A]

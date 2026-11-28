@@ -58,6 +58,17 @@ trait EnclosuresFixturesImpl { this: MacroCommons =>
     Expr(result)
   }
 
+  /** The enclosing class's own members (`isDeclared`), as opposed to the ones provided by its self-type. */
+  def testEnclosingClassDeclaredMembers: Expr[Data] = {
+    val result = enclosingScope.iterator
+      .collectFirst { case enc: Enclosure.Class =>
+        val names = enc.members.filter(_.name.startsWith("dep")).map(m => m.name -> m.isDeclared)
+        Data.map(names.sortBy(_._1).map { case (name, declared) => name -> Data(declared) }*)
+      }
+      .getOrElse(Data("<no class>"))
+    Expr(result)
+  }
+
   /** Local `val`s declared before the macro call have to be discoverable - macwire-style wiring builds on them. */
   def testEnclosingLocalValues: Expr[Data] = {
     val locals: List[Enclosure.LocalValue] = enclosingScope.iterator

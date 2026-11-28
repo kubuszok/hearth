@@ -242,6 +242,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       if result =:= instanceTpe then None else Some(result)
     }
 
+    override private[hearth] def byNameUnderlying(paramTpe: UntypedType): Option[UntypedType] = paramTpe match {
+      case ByNameType(underlying) => Some(underlying)
+      case _                      => None
+    }
+
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val tupleBase = fromTyped[Tuple]
       val nonEmptyBase = fromTyped[NonEmptyTuple]
@@ -356,13 +361,14 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     override def isJavaEnum(instanceTpe: UntypedType): Boolean = {
       val flags = instanceTpe.typeSymbol.flags
       // Java enum classes have Enum | JavaDefined but may not have Final (e.g. enums with abstract methods)
+      // A Java enum nested in a class is a static nested class: it has `JavaStatic` too, like the constants.
       instanceTpe <:< fromTyped[java.lang.Enum[?]] && flags.is(Flags.Enum | Flags.JavaDefined) &&
-      !flags.is(Flags.JavaStatic)
+      (!flags.is(Flags.JavaStatic) || instanceTpe.typeSymbol.isClassDef)
     }
     override def isJavaEnumValue(instanceTpe: UntypedType): Boolean = {
       val flags = instanceTpe.typeSymbol.flags
       instanceTpe <:< fromTyped[java.lang.Enum[?]] && flags.is(Flags.Enum | Flags.JavaDefined) &&
-      flags.is(Flags.JavaStatic)
+      flags.is(Flags.JavaStatic) && !instanceTpe.typeSymbol.isClassDef
     }
     override def isEnumeration(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -588,14 +594,22 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             case _ => result
           }
 
-      val overrideDecls = overrides.map { ovr =>
-        val methodSym = ovr.method.symbol
-        val rawMemberType = safeMemberType(targetType, methodSym)
-        // Recover a context-function return that a newer compiler desugared into a trailing `using` clause.
-        val memberType = contextFunctionReturn(methodSym) match {
+      // Recovers a context-function return that a newer compiler desugared into a trailing `using` clause.
+      def withContextFunctionReturn(methodSym: Symbol, rawMemberType: TypeRepr): TypeRepr =
+        contextFunctionReturn(methodSym) match {
           case Some((valueClauses, ctxFn)) => truncateToResult(rawMemberType, valueClauses, ctxFn)
           case None                        => rawMemberType
         }
+      // Seen from the parent type, a member's reference to an inner type of the parent (`this.Embedded`) becomes the
+      // projection `Parent#Embedded`, which does not override it. Seen from the new class's own `this`, it is the new
+      // instance's `this.Embedded`.
+      def memberTypeInNewClass(cls: Symbol, methodSym: Symbol, fallback: TypeRepr): TypeRepr =
+        try withContextFunctionReturn(methodSym, This(cls).tpe.memberType(methodSym))
+        catch { case _: Throwable => fallback }
+
+      val overrideDecls = overrides.map { ovr =>
+        val methodSym = ovr.method.symbol
+        val memberType = withContextFunctionReturn(methodSym, safeMemberType(targetType, methodSym))
         // An abstract `val` must be overridden with a `val`, not a `def` (Scala 3 rejects a method overriding a
         // stable value: "wrong type, expect a method type"). Vars keep the def/setter shape.
         val isValTarget = ovr.method.isVal && !ovr.method.isVar
@@ -613,7 +627,8 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         "$anon",
         effectiveParents,
         decls = cls =>
-          overrideDecls.map { case (ovr, _, memberType, isValTarget, isThisTypeTarget) =>
+          overrideDecls.map { case (ovr, methodSym, memberTypeInParent, isValTarget, isThisTypeTarget) =>
+            val memberType = memberTypeInNewClass(cls, methodSym, memberTypeInParent)
             if isValTarget then Symbol.newVal(
               cls,
               ovr.method.name,
@@ -644,28 +659,31 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
       val valTargets = overrideDecls.filter(_._4)
 
       val methodDefs =
-        cls.declaredMethods.zip(methodTargets).map { case (newMethodSym, (ovr, _, memberType, _, isThisTypeTarget)) =>
-          DefDef(
-            newMethodSym,
-            argss => {
-              val selfExpr: Term = This(cls)
-              // Type arguments come first in `argss` for a generic member (re-bound type-parameter references), value
-              // arguments are the Terms. Splitting them lets us surface the type parameters to the override body and
-              // resolve the return type against this member's own type parameters.
-              val typeParamReprs: List[TypeRepr] = argss.flatten.collect { case t: TypeTree => t.tpe }
-              val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
-              val returnTpe: TypeRepr = methodResultType(memberType, typeParamReprs)
-              Some(
-                ovr.body(selfExpr, flatParams, returnTpe, typeParamReprs, isThisTypeTarget).changeOwner(newMethodSym)
-              )
-            }
-          )
+        cls.declaredMethods.zip(methodTargets).map {
+          case (newMethodSym, (ovr, methodSym, memberTypeInParent, _, isThisTypeTarget)) =>
+            val memberType = memberTypeInNewClass(cls, methodSym, memberTypeInParent)
+            DefDef(
+              newMethodSym,
+              argss => {
+                val selfExpr: Term = This(cls)
+                // Type arguments come first in `argss` for a generic member (re-bound type-parameter references), value
+                // arguments are the Terms. Splitting them lets us surface the type parameters to the override body and
+                // resolve the return type against this member's own type parameters.
+                val typeParamReprs: List[TypeRepr] = argss.flatten.collect { case t: TypeTree => t.tpe }
+                val flatParams: List[Term] = argss.flatten.collect { case t: Term => t }
+                val returnTpe: TypeRepr = methodResultType(memberType, typeParamReprs)
+                Some(
+                  ovr.body(selfExpr, flatParams, returnTpe, typeParamReprs, isThisTypeTarget).changeOwner(newMethodSym)
+                )
+              }
+            )
         }
 
-      val valDefs = cls.declaredFields.zip(valTargets).map { case (newValSym, (ovr, _, memberType, _, _)) =>
-        val valType = methodResultType(memberType, Nil)
-        ValDef(newValSym, Some(ovr.body(This(cls), Nil, valType, Nil, false).changeOwner(newValSym)))
-      }
+      val valDefs =
+        cls.declaredFields.zip(valTargets).map { case (newValSym, (ovr, methodSym, memberTypeInParent, _, _)) =>
+          val valType = methodResultType(memberTypeInNewClass(cls, methodSym, memberTypeInParent), Nil)
+          ValDef(newValSym, Some(ovr.body(This(cls), Nil, valType, Nil, false).changeOwner(newValSym)))
+        }
 
       val overrideDefs = methodDefs ++ valDefs
 
@@ -829,15 +847,24 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
     // so the results of the companion's methods (`Foo.apply(1)`) would be typed with the dealiased representation
     // (`Int`) rather than the opaque type (`Foo`), failing e.g. `Option.apply[Foo](x: Foo | Null)` on Scala 3.8+.
     // Select the module from the opaque type's own (external) prefix instead.
-    private def companionRef(untyped: UntypedType, module: Symbol, isOpaque: Boolean): UntypedExpr =
-      untyped.dealias match {
-        case tr: TypeRef if isOpaque =>
+    // `Ref(module)` goes through the module's owner (`Trait.this.Companion`), which compiles only inside that owner. A
+    // class declared in a trait and used through an object extending it (`Obj.Companion`) has to be reached through
+    // the stable prefix of the type instead.
+    private def companionRef(untyped: UntypedType, module: Symbol, isOpaque: Boolean): UntypedExpr = {
+      val typeRef = untyped.dealias match {
+        case AppliedType(tycon, _) => tycon
+        case other                 => other
+      }
+      typeRef match {
+        case tr: TypeRef =>
           tr.qualifier match {
-            case prefix: TermRef => Ref.term(TermRef(prefix, module.name))
-            case _               => Ref(module)
+            case prefix: TermRef if isOpaque || !prefix.termSymbol.flags.is(Flags.Package) =>
+              Ref.term(TermRef(prefix, module.name))
+            case _ => Ref(module)
           }
         case _ => Ref(module)
       }
+    }
 
     override def directChildren(instanceTpe: UntypedType): Option[ListMap[String, UntypedType]] =
       directChildrenList(instanceTpe).map(ListMap.from)
@@ -879,8 +906,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
           valueClassSymOpt.flatMap { valueClassSym =>
             // In Scala 3, path-dependent types make <:< unreliable for Enumeration.this.Value vs WeekDay.Value.
             // Instead, we check if the val's type has Value (or a subclass) in its baseClasses.
+            // A private value cannot be referred to from the expansion site, and a `var` cannot be matched on as a
+            // stable value, so neither can be a child we generate code for.
             val children = enumObjectType.typeSymbol.declarations
               .filter(_.isValDef)
+              .filterNot(term => term.flags.is(Flags.Private) || term.flags.is(Flags.Mutable))
               .filter { term =>
                 val termType = safeMemberType(enumObjectType, term)
                 typeReprBaseClasses(termType).contains(valueClassSym)
@@ -896,7 +926,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
             else Some(children.toList)
           }
         }
-      } else if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some {
+      }
+      // Since Scala 3.8 the standard library is compiled with Scala 3, which makes `*:` sealed, but its subclasses are an
+      // implementation detail of tuples rather than cases to dispatch on.
+      else if isTuple(instanceTpe) then None
+      else if isSealed(instanceTpe) || isJavaEnum(instanceTpe) then Some {
         def handleSymbols(sym: Symbol): Symbol =
           if sym.flags.is(Flags.Enum) then sym.typeRef.typeSymbol
           else if sym.flags.is(Flags.Module) then sym.typeRef.typeSymbol.moduleClass
@@ -907,7 +941,11 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         // same sources would give different orders depending on what the build recompiled.
         // `classificationSymbol` rather than `typeSymbol`: for an alias (`type U[A] = Sealed[Any, A]`) the latter is the
         // alias' symbol, which has no children.
-        classificationSymbol(instanceTpe).children
+        val enumOrSealed = classificationSymbol(instanceTpe)
+        val children =
+          if isJavaEnum(instanceTpe) then javaEnumChildrenInDeclarationOrder(enumOrSealed)
+          else enumOrSealed.children
+        children
           .map(handleSymbols)
           .map(subtypeSymbol => subtypeName(subtypeSymbol) -> subtypeTypeOf(instanceTpe, subtypeSymbol))
       }
@@ -925,6 +963,22 @@ trait UntypedTypesScala3 extends UntypedTypes { this: MacroCommonsScala3 =>
         else None
       }
       else None
+
+    /** The compiler registers a constant of a Java enum read from a class file as the enum's child only once the
+      * constant's info is completed, so `children` lists only the constants the compiled code has referred to so far,
+      * in the order it referred to them. Completing every constant (the static fields of the companion) first, and then
+      * ordering by those fields, gives all of them in declaration order.
+      */
+    private def javaEnumChildrenInDeclarationOrder(enumClass: Symbol): List[Symbol] = {
+      val statics = enumClass.companionModule
+      val constants =
+        if statics.isNoSymbol then Nil
+        else statics.declaredFields.filter(_.flags.is(Flags.Enum))
+      val staticsType = if statics.isTerm then statics.termRef else statics.typeRef
+      constants.foreach(constant => staticsType.memberType(constant))
+      val declarationIndex = constants.map(_.name).zipWithIndex.toMap
+      enumClass.children.sortBy(child => declarationIndex.getOrElse(child.name, Int.MaxValue))
+    }
 
     /** How a generated pattern match would dispatch on a particular union member. */
     sealed private trait UnionMemberDispatch extends Product with Serializable

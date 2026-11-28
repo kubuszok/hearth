@@ -252,7 +252,9 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
       val termSym = repr.termSymbol
       if sym.flags.is(Flags.Module) then Some(Ref(sym.companionModule).asExprOf[A])
       else if !termSym.isNoSymbol then Some(Ref(termSym).asExprOf[A])
-      else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable))
+      // A Java enum nested in a class is a static nested class, so the flags alone do not tell it from a constant.
+      else if sym.flags.is(Flags.Enum) && (sym.flags.is(Flags.JavaStatic) || sym.flags.is(Flags.StableRealizable)) &&
+      !sym.isClassDef
       then Some(Ref(sym).asExprOf[A])
       else None
     }
@@ -339,6 +341,13 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case Literal(constant) =>
             Right(extractConstant(constant))
 
+          // A Java class has no companion module at runtime: its static members are fields of the class itself, so a
+          // qualified `JavaClass.member` cannot be evaluated by first evaluating `JavaClass`.
+          case Select(_, _) | Ident(_)
+              if term.symbol.flags.is(Flags.JavaStatic) && !term.symbol.isDefDef &&
+                !term.symbol.flags.is(Flags.Module) =>
+            resolveStaticField(term.symbol)
+
           case _ if term.symbol.flags.is(Flags.Module) =>
             resolveModule(term.symbol)
 
@@ -384,7 +393,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           case Ident(_)
               if term.symbol.flags.is(Flags.Enum) &&
                 (term.symbol.flags.is(Flags.JavaStatic) || term.symbol.flags.is(Flags.StableRealizable)) =>
-            resolveEnumValue(term.symbol)
+            resolveStaticField(term.symbol)
 
           case Ident(_) if term.symbol.isDefDef =>
             resolveMethodOnOwner(term.symbol)
@@ -753,7 +762,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
         }
       }
 
-      private def resolveEnumValue(sym: Symbol): Result = {
+      private def resolveStaticField(sym: Symbol): Result = {
         val ownerName = sym.owner.fullName
         val valueName = sym.name
         val candidates = moduleCandidates(ownerName)
@@ -767,7 +776,7 @@ trait ExprsScala3 extends Exprs { this: MacroCommonsScala3 =>
           .nextOption()
         result.toRight(
           NonEmptyVector.one(
-            s"Cannot resolve enum value: ${sym.fullName}"
+            s"Cannot resolve static field: ${sym.fullName}"
           )
         )
       }

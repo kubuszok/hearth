@@ -350,6 +350,10 @@ val mimaSettings = Seq(
     // MacroCommons cake and is implemented ONLY by Hearth's own `Environment` object (in EnvironmentsScala2/
     // EnvironmentsScala3), same reasoning as `annotated` above.
     exclude[ReversedMissingMethodProblem]("hearth.Environments#EnvironmentModule.enclosingMethodParameters"),
+    // `byNameUnderlying` - the platform hook behind `Parameter.byNameUnderlying` - added to the NESTED trait
+    // `UntypedTypes#UntypedTypeModule`, `private[hearth]` and implemented ONLY by Hearth's own `UntypedType` object (in
+    // UntypedTypesScala2/UntypedTypesScala3), same reasoning as `annotated` above.
+    exclude[ReversedMissingMethodProblem]("hearth.untyped.UntypedTypes#UntypedTypeModule.byNameUnderlying"),
     // `functionComponents` (the platform hook behind `isFunction`/`Type.functionComponents`) added to the NESTED trait
     // `UntypedTypes#UntypedTypeModule`, implemented ONLY by Hearth's own `UntypedType` object (in UntypedTypesScala2/
     // UntypedTypesScala3), same reasoning as `annotated` above.
