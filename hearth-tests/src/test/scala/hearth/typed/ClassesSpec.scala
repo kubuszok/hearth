@@ -244,6 +244,20 @@ final class ClassesSpec extends MacroSuite {
         "(a: hearth.examples.classes.ExampleCaseClass.apply(0).a)"
     }
 
+    test("CaseClass[A].caseFieldValuesAt should read the case accessor when a method overloads the field's name") {
+      import ClassesFixtures.{testCaseClassCaseFieldValuesAt, testCaseClassConstructRoundTrip}
+
+      testCaseClassCaseFieldValuesAt(hearth.examples.classesedge.CaseFieldOverloadedByMethod(1)) <==>
+        "(paths: hearth.examples.classesedge.CaseFieldOverloadedByMethod.apply(1).paths)"
+      testCaseClassConstructRoundTrip[examples.classesedge.CaseFieldOverloadedByMethod] <==> "paths=42"
+    }
+
+    test("CaseClass[A] should handle back-quoted field names, also ones starting or ending with a space") {
+      import ClassesFixtures.testCaseClassConstructRoundTrip
+
+      testCaseClassConstructRoundTrip[examples.classesedge.SpacedFieldNames] <==> " x =42, kebab-case=hello"
+    }
+
     // caseFieldValuesAt(instance, visibility) filters case fields by accessibility. The DEFAULT is AtCallSite: only
     // fields accessible at the macro expansion point are returned, because the generated `instance.field` access has
     // to compile there. `private[hearth]` field b IS
@@ -318,6 +332,14 @@ final class ClassesSpec extends MacroSuite {
 
       testCaseClassDefaultValues[examples.classes.ExampleCaseClassWithDefaults] <==>
         "a: hasDefault=false, default=<no default>, b: hasDefault=true, default=resolved"
+    }
+
+    test("CaseClass[A] default values evaluated at runtime, also for a case class declared in a trait") {
+      import ClassesFixtures.testCaseClassDefaultValuesAtRuntime
+      import examples.classesedge.CaseClassesInTrait
+
+      testCaseClassDefaultValuesAtRuntime[CaseClassesInTrait.UserInTrait] <==> "age = 42"
+      testCaseClassDefaultValuesAtRuntime[CaseClassesInTrait.BoxInTrait[Int]] <==> "label = box"
     }
 
     test("CaseClass round-trip: construct and extract field values at runtime") {
@@ -780,6 +802,32 @@ final class ClassesSpec extends MacroSuite {
         )
       }
 
+      test("for a Scala Enumeration, only the values accessible at the call site") {
+        testEnumChildren[examples.enums.EnumerationWithPrivateValue.Value] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data("Moon: hearth.examples.enums.EnumerationWithPrivateValue.Moon.type"),
+            Data("Sun: hearth.examples.enums.EnumerationWithPrivateValue.Sun.type")
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data("Moon: hearth.examples.enums.EnumerationWithPrivateValue.Moon.type"),
+            Data("Sun: hearth.examples.enums.EnumerationWithPrivateValue.Sun.type")
+          )
+        )
+      }
+
+      test("for children with back-quoted symbolic names, printed decoded") {
+        testEnumChildren[examples.classesedge.SymbolicNames] <==> Data.map(
+          "directChildren" -> Data.list(
+            Data("US/Alaska: hearth.examples.classesedge.SymbolicNames.US/Alaska.type"),
+            Data("a+b: hearth.examples.classesedge.SymbolicNames.a+b")
+          ),
+          "exhaustiveChildren" -> Data.list(
+            Data("US/Alaska: hearth.examples.classesedge.SymbolicNames.US/Alaska.type"),
+            Data("a+b: hearth.examples.classesedge.SymbolicNames.a+b")
+          )
+        )
+      }
+
       test("a sealed trait without children is not an Enum") {
         testEnumChildren[examples.classesedge.SealedWithoutChildren] <==> Data("<no enum>")
       }
@@ -820,6 +868,13 @@ final class ClassesSpec extends MacroSuite {
           "hearth.examples.enums.WeekDay.Tue.type: Tue / hearth.examples.enums.WeekDay.Tue.type: Tue"
         code(examples.enums.WeekDay.Sun) <==>
           "hearth.examples.enums.WeekDay.Sun.type: Sun / hearth.examples.enums.WeekDay.Sun.type: Sun"
+      }
+
+      test("for a Scala Enumeration with a private value") {
+        testEnumMatchOnRuntime[examples.enums.EnumerationWithPrivateValue.Value](
+          examples.enums.EnumerationWithPrivateValue.Sun
+        ) <==>
+          "hearth.examples.enums.EnumerationWithPrivateValue.Sun.type: Sun / hearth.examples.enums.EnumerationWithPrivateValue.Sun.type: Sun"
       }
     }
 

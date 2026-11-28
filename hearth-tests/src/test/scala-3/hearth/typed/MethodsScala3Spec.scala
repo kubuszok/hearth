@@ -279,6 +279,19 @@ final class MethodsScala3Spec extends MacroSuite {
       group("methods: extension methods on Scala 3 types") {
         import MethodsFixtures.testMethodProperties
 
+        test("an extension method in the companion takes its receiver as the first parameter list") {
+          import examples.methods.VecWithExtensionCopy
+
+          MethodsFixtures.testMethodSignatures[VecWithExtensionCopy]("copy") <==> Data.list(
+            Data(
+              "hearth.examples.methods.VecWithExtensionCopy: def copy(v: hearth.examples.methods.VecWithExtensionCopy)(x: scala.Double = <default>, y: scala.Double = <default>): hearth.examples.methods.VecWithExtensionCopy"
+            )
+          )
+          // The default of `y` reads the receiver.
+          MethodsFixtures.testCallWithReceiverAndX(new VecWithExtensionCopy(1.0, 2.0), "copy", 11.0) <==>
+            "Vec(11.0, 2.0)"
+        }
+
         test("for IArray[Int] extension method (should not crash)") {
           // Extension methods' receiver parameter must be dropped from parameters and type resolution, or the macro
           // expansion crashes.

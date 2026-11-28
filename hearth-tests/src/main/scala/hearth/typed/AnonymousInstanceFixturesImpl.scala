@@ -348,6 +348,39 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
     }
   }
 
+  /** The override of `transform(s: String)` returns whether the type its body sees for `s` conforms to `String` (Scala
+    * 3 gives the singleton type of the parameter) and is not `Nothing`.
+    */
+  def testAnonymousInstanceOverrideParameterTypes: Expr[String] = {
+    implicit val StringType: Type[String] = stringTypeAI
+    implicit val ParentType: Type[examples.anonymous_instances.GenericParent[String]] =
+      genericParentOfStringTypeAI
+
+    AnonymousInstance.parse[examples.anonymous_instances.GenericParent[String]] match {
+      case ClassViewResult.Compatible(ai) =>
+        val overrides: Map[UntypedMethod, OverrideBody] = ai.mustOverride.map { cm =>
+          cm.method.asUntyped -> new OverrideBody {
+            def apply(ctx: OverrideContext): Expr_?? =
+              Expr(
+                ctx.parameters
+                  .map(p =>
+                    s"<: String: ${p.Underlying <:< Type[String]}, Nothing: ${p.Underlying =:= Type.of[Nothing]}"
+                  )
+                  .mkString(", ")
+              ).as_??
+          }
+        }.toMap
+        ai.construct(None, Map.empty, overrides) match {
+          case Right(constructed) =>
+            Expr.quote(Expr.splice(constructed).transform("echo"))
+          case Left(errors) =>
+            Expr(s"errors: ${errors.toVector.mkString("; ")}")
+        }
+      case ClassViewResult.Incompatible(reason) =>
+        Expr(s"incompatible: $reason")
+    }
+  }
+
   def testAnonymousInstanceOverrideUsingParams(captured: Expr[String]): Expr[String] = {
     implicit val StringType: Type[String] = stringTypeAI
     implicit val ParentType: Type[examples.anonymous_instances.GenericParent[String]] =
@@ -673,7 +706,9 @@ trait AnonymousInstanceFixturesImpl { this: MacroCommons =>
           if (Type[R] <:< Type[Int]) Expr(0).as_??
           else if (Type[R] <:< Type[String]) Expr("stub").as_??
           else if (Type[R] <:< Type[Boolean]) Expr(false).as_??
-          else Expr.quote(null.asInstanceOf[R]).as_??
+          // `null.asInstanceOf[R]` would name `R` through the path it was imported from, which does not exist in
+          // the generated code on Scala 2.
+          else Expr.quote(null).asInstanceOf[Expr[R]].as_??
         }
       }
     }.toMap

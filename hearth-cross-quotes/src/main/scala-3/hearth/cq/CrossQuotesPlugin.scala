@@ -350,13 +350,14 @@ final private class CrossQuotesTreeMap(loggingEnabled: (Option[JFile], Int, Int)
             contextBoundTypeTree.productElement(0).isInstanceOf[Select] &&
             contextBoundTypeTree.productElement(1).isInstanceOf[TypeName] &&
             contextBoundTypeTree.productElement(2).isInstanceOf[TermName] =>
-        val Select(Ident(tpeName), ctorName) =
-          (contextBoundTypeTree.productElement(0).asInstanceOf[Select]: @unchecked)
-        if tpeName.show == "Type" && isCtor(ctorName.show) then {
-          val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
-          val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
-          Some((ctorName, hktName, Some(evidenceName)))
-        } else None
+        // A bound written with a qualified prefix (`scala.quoted.Type`) is not `Type.CtorN`.
+        contextBoundTypeTree.productElement(0) match {
+          case Select(Ident(tpeName), ctorName) if tpeName.show == "Type" && isCtor(ctorName.show) =>
+            val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
+            val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
+            Some((ctorName, hktName, Some(evidenceName)))
+          case _ => None
+        }
       case _ => None
     }
   }
@@ -397,13 +398,14 @@ final private class CrossQuotesTreeMap(loggingEnabled: (Option[JFile], Int, Int)
             contextBoundTypeTree.productElement(0).isInstanceOf[Select] &&
             contextBoundTypeTree.productElement(1).isInstanceOf[TypeName] &&
             contextBoundTypeTree.productElement(2).isInstanceOf[TermName] =>
-        val Select(Ident(tpeName), ctorK1Name) =
-          (contextBoundTypeTree.productElement(0).asInstanceOf[Select]: @unchecked)
-        if tpeName.show == "Type" && ctorK1Name.show == "CtorK1" then {
-          val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
-          val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
-          Some((hktName, Some(evidenceName)))
-        } else None
+        // A bound written with a qualified prefix (`scala.quoted.Type`) is not `Type.CtorK1`.
+        contextBoundTypeTree.productElement(0) match {
+          case Select(Ident(tpeName), ctorK1Name) if tpeName.show == "Type" && ctorK1Name.show == "CtorK1" =>
+            val hktName = contextBoundTypeTree.productElement(1).asInstanceOf[Name]
+            val evidenceName = contextBoundTypeTree.productElement(2).asInstanceOf[TermName]
+            Some((hktName, Some(evidenceName)))
+          case _ => None
+        }
       case _ => None
     }
   }

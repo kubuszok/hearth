@@ -258,4 +258,12 @@ object ClassesFixtures {
   inline def testEnumMatchOnRuntime[A](inline expr: A): String = ${ testEnumMatchOnRuntimeImpl[A]('expr) }
   private def testEnumMatchOnRuntimeImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
     new ClassesFixtures(q).testEnumMatchOnRuntime[A](expr)
+
+  inline def testCaseClassDefaultValuesAtRuntime[A]: String = ${ testCaseClassDefaultValuesAtRuntimeImpl[A] }
+  private def testCaseClassDefaultValuesAtRuntimeImpl[A: Type](using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testCaseClassDefaultValuesAtRuntime[A]
+
+  inline def testEnumMatchOnAsChild[A](inline expr: A): String = ${ testEnumMatchOnAsChildImpl[A]('expr) }
+  private def testEnumMatchOnAsChildImpl[A: Type](expr: Expr[A])(using q: Quotes): Expr[String] =
+    new ClassesFixtures(q).testEnumMatchOnAsChild[A](expr)
 }

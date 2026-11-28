@@ -378,6 +378,16 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
       Expr.quote(List(Expr.splice(VarArgs(Expr(1), Expr(2), Expr(3)))*).sum)
     }
 
+    // A spliced sequence which is not a `Seq(...)` call: a `::` chain and a reference to a value.
+    def varargsOfOtherSequences: Expr[String] = {
+      val consChain: Expr[List[Int]] = Expr.quote(1 :: 2 :: 3 :: Nil)
+      val reference: Expr[List[Int]] = Expr.quote {
+        val numbers = List(4, 5, 6)
+        numbers
+      }
+      Expr.quote(List(Expr.splice(consChain)*).mkString(",") + "|" + List(Expr.splice(reference)*).mkString(","))
+    }
+
     def unitSplice: Expr[String] = {
       def unit: Expr[Unit] = Expr.quote(())
       Expr.quote {
@@ -406,6 +416,7 @@ trait CrossQuotesEdgeCasesFixturesImpl { this: MacroCommons =>
           Expr.splice(byNameAndFunctionApplication(Expr.quote(4), Expr.quote((i: Int) => i * 7)))
         ),
         "varargs splice" -> Data(Expr.splice(varargs)),
+        "varargs splice of a sequence that is not a Seq(...) call" -> Data(Expr.splice(varargsOfOtherSequences)),
         "Unit splice as a statement" -> Data(Expr.splice(unitSplice))
       )
     }

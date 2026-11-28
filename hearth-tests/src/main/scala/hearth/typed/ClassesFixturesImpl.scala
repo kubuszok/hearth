@@ -393,6 +393,33 @@ trait ClassesFixturesImpl { this: MacroCommons =>
     }
   }
 
+  def testCaseClassDefaultValuesAtRuntime[A: Type]: Expr[String] = {
+    implicit val StringType: Type[String] = stringType
+    CaseClass.parse[A].toOption.fold(Expr("<no case class>")) { caseClass =>
+      val defaults: List[Expr[String]] = caseClass.primaryConstructor.parameters.flatten.toList.collect {
+        case (name, param) if param.hasDefault =>
+          param.defaultValue match {
+            case Some(defaultMethod) =>
+              defaultMethod.fold(
+                onInstance = _ => Expr("<instance is not needed>").as_??,
+                onTypes = _ => Map.empty,
+                onValues = _ => Map.empty
+              ) match {
+                case Right(default) =>
+                  import default.{Underlying as Default, value as defaultExpr}
+                  val prefix = Expr(s"$name = ")
+                  Expr.quote(Expr.splice(prefix) + Expr.splice(defaultExpr).toString)
+                case Left(error) => Expr(s"$name: $error")
+              }
+            case None => Expr(s"$name: <default missing>")
+          }
+      }
+      defaults
+        .reduceOption((a, b) => Expr.quote(Expr.splice(a) + ", " + Expr.splice(b)))
+        .getOrElse(Expr("<no defaults>"))
+    }
+  }
+
   def testCaseClassConstructRoundTrip[A: Type]: Expr[String] = {
     implicit val StringType: Type[String] = stringType
     CaseClass.parse[A].toOption.fold(Expr("<no case class>")) { caseClass =>
@@ -701,6 +728,25 @@ trait ClassesFixturesImpl { this: MacroCommons =>
       val parallel = enumm.parMatchOn(expr)(handle).map(_.getOrElse(Expr("<no match>")))
       sequential
         .parMap2(parallel)((seq, par) => Expr.quote(Expr.splice(seq) + " / " + Expr.splice(par)))
+        .unsafe
+        .runSync
+        ._2
+        .fold(errors => Expr(s"<failed: ${errors.toList.map(_.getMessage).mkString(", ")}>"), identity)
+    }
+
+  /** Each case uses the matched value where the child's own type is expected. */
+  def testEnumMatchOnAsChild[A: Type](expr: Expr[A]): Expr[String] =
+    Enum.parse[A].toOption.fold(Expr("<no enum>")) { enumm =>
+      implicit val StringType: Type[String] = stringType
+      enumm
+        .matchOn(expr) { matched =>
+          import matched.{Underlying as Subtype, value as matchedExpr}
+          MIO.pure(Expr.quote {
+            val asChild: Subtype = Expr.splice(matchedExpr)
+            asChild.toString
+          })
+        }
+        .map(_.getOrElse(Expr("<no match>")))
         .unsafe
         .runSync
         ._2

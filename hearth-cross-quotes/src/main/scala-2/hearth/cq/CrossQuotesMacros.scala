@@ -1298,8 +1298,17 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
           pos = originalSymbol.pos,
           flags = c.internal.flags(originalSymbol)
         )
+        // The symbol of an alias or a type lambda fixing some arguments (`type L[F[_]] = Alg[F, String]`) is the aliased
+        // class, which takes a different number of type parameters - such a constructor is spliced as the type itself.
+        // `Any`/`Nothing` are kind-polymorphic, so they stand for any constructor through their symbol.
         val ttag = c.parse(
-          s"$ctx.universe.Ident($implicitValName.asUntyped.asInstanceOf[$ctx.universe.Type].typeSymbol)"
+          s"""{
+             |  val hkt = $implicitValName.asUntyped.asInstanceOf[$ctx.universe.Type]
+             |  val sym = hkt.typeSymbol
+             |  if (sym == $ctx.universe.definitions.AnyClass || sym == $ctx.universe.definitions.NothingClass ||
+             |      sym.asType.typeParams.size == hkt.typeParams.size) $ctx.universe.Ident(sym)
+             |  else $ctx.universe.TypeTree(hkt)
+             |}""".stripMargin
         )
         _root_.scala.Some(Cache(stub, symbol, ttag))
       } catch {
@@ -1619,7 +1628,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
              |  def $workaroundStr[$typeParamDecls] = {
              |    $printedExpr
              |  }
-             |  CrossQuotes.stripFreeTypes($ctx)($workaroundStr[$typeArgs]($freeTypeArgs).asInstanceOf[$ctx.Expr[Any]])
+             |  CrossQuotes.stripFreeTypes($workaroundStr[$typeArgs]($freeTypeArgs)).asInstanceOf[$ctx.Expr[Any]]
              |} }""".stripMargin
 
         log(
@@ -1643,7 +1652,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
 
           val stub = Ident(freshName("expressionStub"))
           caches += (stub.toString() ->
-            s"..$${ {$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]].tree.children.tail }")
+            s"..$${ CrossQuotes.varArgsElements({$printedExpr}.asInstanceOf[$ctx.Expr[$printedTpe]]).asInstanceOf[List[$ctx.universe.Tree]] }")
           stub
         } else {
           // Workaround case: VarArgs splice references local type params
@@ -1654,7 +1663,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       /** Generates a workaround method for VarArgs splices that reference local type params.
         *
         * Like `storeWithWorkaround` but adapted for the VarArgs splice pattern: instead of producing an `Expr`, the
-        * result is unwrapped via `.tree.children.tail` to yield the spliced sequence elements.
+        * result is unwrapped via `CrossQuotes.varArgsElements` to yield the spliced sequence elements.
         */
       private def storeVarArgsWithWorkaround(
           expr: Tree,
@@ -1680,7 +1689,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
              |  def $workaroundStr[$typeParamDecls] = {
              |    $printedExpr
              |  }
-             |  CrossQuotes.stripFreeTypes($ctx)($workaroundStr[$typeArgs]($freeTypeArgs).asInstanceOf[$ctx.Expr[Seq[Any]]]).tree.children.tail
+             |  CrossQuotes.varArgsElements(CrossQuotes.stripFreeTypes($workaroundStr[$typeArgs]($freeTypeArgs))).asInstanceOf[List[$ctx.universe.Tree]]
              |} }""".stripMargin
 
         log(
@@ -1718,7 +1727,7 @@ final class CrossQuotesMacros(val c: blackbox.Context) extends ShowCodePrettySca
       /* Replaces:
        *   Expr.splice[Seq[A]](a): _*
        * with:
-       *   ..${{a}.asInstanceOf[ctx.Expr[Seq[A]]].tree.children.tail}
+       *   ..${CrossQuotes.varArgsElements({a}.asInstanceOf[ctx.Expr[Seq[A]]]).asInstanceOf[List[ctx.universe.Tree]]}
        * This avoids the redundant Seq(...): _* wrapping when using VarArgs.
        */
       case Typed(

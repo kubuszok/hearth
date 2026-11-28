@@ -131,8 +131,7 @@ final class CrossQuotesEdgeCasesSpec extends MacroSuite {
         )
       }
 
-      // `unapply` returns the type arguments without checking them against the bounds yet.
-      test("UpperBounded.of and Bounded.of should reject types outside of the bounds in unapply".ignore) {
+      test("UpperBounded.of and Bounded.of should reject types outside of the bounds in unapply") {
         CrossQuotesEdgeCasesFixtures.testBoundedCtorOutsideOfBounds <==> Data.map(
           "UpperBounded" -> Data("<no match>"),
           "Bounded" -> Data("<no match>")
@@ -185,6 +184,7 @@ final class CrossQuotesEdgeCasesSpec extends MacroSuite {
           "higher-order functions and for-comprehensions" -> Data("4,6|12,13,21,23|2/4"),
           "by-name argument and function application" -> Data(25),
           "varargs splice" -> Data(6),
+          "varargs splice of a sequence that is not a Seq(...) call" -> Data("1,2,3|4,5,6"),
           "Unit splice as a statement" -> Data("after unit")
         )
       }

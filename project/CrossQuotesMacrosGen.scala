@@ -169,6 +169,7 @@ object CrossQuotesMacrosGen {
     val matchResultReturn = matchResultReturnType(n)
     val unapplyReturn = unapplyOptionType(n, isFromUntyped = false)
     sb ++= s"    def buildUnapplyDefs(): List[c.Tree] = {\n"
+    sb ++= withinBoundsDef(tq)
     sb ++= s"      val matchResultDef = q${tq}\n"
     sb ++= s"      private def matchResult($matchResultParams): $matchResultReturn =\n"
     sb ++= matchResultBody(n, 8)
@@ -209,7 +210,7 @@ object CrossQuotesMacrosGen {
     sb ++= s"        else true\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
-    sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"
+    sb ++= s"      List(matchResultDef, withinBoundsDef, prefixMatchesDef, unapplyDef)\n"
     sb ++= s"    }\n"
     sb ++= s"\n"
 
@@ -313,6 +314,7 @@ object CrossQuotesMacrosGen {
     val matchResultReturn = matchResultReturnType(n)
     val unapplyReturn = unapplyOptionType(n, isFromUntyped = true)
     sb ++= s"    def buildUnapplyDefs(): List[c.Tree] = {\n"
+    sb ++= withinBoundsDef(tq)
     sb ++= s"      val matchResultDef = q${tq}\n"
     sb ++= s"      private def matchResult($matchResultParams): $matchResultReturn =\n"
     sb ++= matchResultBody(n, 8)
@@ -353,7 +355,7 @@ object CrossQuotesMacrosGen {
     sb ++= s"        else true\n"
     sb ++= s"      }\n"
     sb ++= s"      $tq\n"
-    sb ++= s"      List(matchResultDef, prefixMatchesDef, unapplyDef)\n"
+    sb ++= s"      List(matchResultDef, withinBoundsDef, prefixMatchesDef, unapplyDef)\n"
     sb ++= s"    }\n"
     sb ++= s"\n"
 
@@ -392,11 +394,29 @@ object CrossQuotesMacrosGen {
   private def boundedOfArgs(n: Int): String =
     (1 to n).map(i => s"${ArityGen.lower(i)}, ${ArityGen.upper(i)}").mkString(", ")
 
-  /** matchResult return type: always `_root_.scala.Some[(bounds)]` */
+  /** matchResult return type: always `_root_.scala.Option[(bounds)]` */
   private def matchResultReturnType(n: Int): String = {
     val boundsInner = (1 to n).map(i => s"$$${ArityGen.lower(i)} <:??<: $$${ArityGen.upper(i)}").mkString(", ")
-    s"_root_.scala.Some[($boundsInner)]"
+    s"_root_.scala.Option[($boundsInner)]"
   }
+
+  /** The `withinBounds` helper of the generated class.
+    *
+    * A bound which is an abstract type (a type parameter of the code creating the constructor, without a `Type` in
+    * scope) is not known when the constructor is used, so it does not restrict the match. A wildcard argument
+    * (`HKT[?]`) has no type to compare.
+    */
+  private def withinBoundsDef(tq: String): String =
+    s"      val withinBoundsDef = q${tq}\n" +
+      s"      private def withinBounds(tp: $$ctx.Type, lower: $$ctx.Type, upper: $$ctx.Type): _root_.scala.Boolean = {\n" +
+      s"        def isKnown(bound: $$ctx.Type): _root_.scala.Boolean = {\n" +
+      s"          val sym = bound.typeSymbol\n" +
+      s"          !(sym.isParameter || (sym.isType && sym.asType.isAbstract && !sym.isClass))\n" +
+      s"        }\n" +
+      s"        (tp.typeSymbol.isType && tp.typeSymbol.asType.isExistential) ||\n" +
+      s"          ((!isKnown(upper) || tp <:< upper) && (!isKnown(lower) || lower <:< tp))\n" +
+      s"      }\n" +
+      s"      $tq\n"
 
   /** unapply Option return type.
     *
@@ -420,6 +440,16 @@ object CrossQuotesMacrosGen {
     * For Ctor2+: `_root_.scala.Some((\n  expr1,\n  expr2\n))`
     */
   private def matchResultBody(n: Int, baseIndent: Int): String = {
+    val indent = " " * baseIndent
+    val boundsCheck = (1 to n)
+      .map(i =>
+        s"withinBounds(tp$i, $$ctx.weakTypeTag[$$${ArityGen.lower(i)}].tpe, $$ctx.weakTypeTag[$$${ArityGen.upper(i)}].tpe)"
+      )
+      .mkString(" && ")
+    s"${indent}if (!($boundsCheck)) _root_.scala.None else\n" + matchResultSome(n, baseIndent)
+  }
+
+  private def matchResultSome(n: Int, baseIndent: Int): String = {
     val indent = " " * baseIndent
     val exprIndent = " " * (baseIndent + 6) // aligning with inner Some(
     // Cast to `Type[U_i]` (the UPPER bound), not `Type[scala.Any]`: `as_<:??<:[L, U]` on a `Type[A]` requires `U >: A`,

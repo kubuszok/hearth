@@ -518,14 +518,15 @@ Return `Some(expr)` to override the printing for that type, or `None` to use the
 | `Type.directChildrenInOrder[MyClass](o)`  | `Type[MyClass].directChildrenInOrder(o)`  | `Option[List[(String, ??<:[MyClass])]]`      | immediate subtypes, in order `o` (8)    |
 | `Type.exhaustiveChildren[MyClass]`        | `Type[MyClass].exhaustiveChildren`        | `Option[NonEmptyMap[String, ??<:[MyClass]]]` | all subtypes (1)                        |
 
-1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums, and
+1. `directChildren` and `exhaustiveChildren` work for sealed traits, Scala 3 enums, Java enums (all constants in
+   declaration order, also for an enum read from a class file), Scala `Enumeration`s (the non-private `val`s), and
    **disjoint union types** (Scala 3 only). For union types like `String | Int`, the flattened members
    are returned when they are safe for exhaustive pattern matching at runtime — meaning no subtype overlap and
    no related runtime classes (after boxing of primitives and unwrapping opaque types). Unsafe unions
    (e.g. `List[Int] | Seq[String]`, where a `List` value would be caught by either branch) return `None`,
    unless the user provides a `scala.reflect.TypeTest` for the ambiguous members (see [Union types](#union-types-scala-3-only)).
    Stable singleton members (e.g. `Color.Red.type`, case objects) are matched by value, so they are
-   accepted even when they share a runtime class.
+   accepted even when they share a runtime class. Tuples are not enums, also on Scala 3.8+ where `*:` is sealed.
 2. `pseudoCompanionObject` is `companionObject`, but when the type (after dealiasing) is an abstract or opaque type
    member of an object - the encoding of newtype libraries, e.g. `object UserName extends Newtype[String]` with
    `type UserName = UserName.Type` (neotype, zio-prelude, monix-newtypes) or the `@newtype` expansion of
@@ -837,6 +838,8 @@ It handles:
 - **Literals** — `42`, `"hello"`, `true`, etc.
 - **Primitive operators** — `+`, `-`, `*`, `/`, `%`, comparisons, bitwise ops, unary ops on numeric types
 - **Singleton objects** — `None`, `Nil`, or any `object` on the classpath
+- **Java static fields and enum constants** — `java.math.RoundingMode.FLOOR`, `java.io.File.separator`, also qualified
+  and nested in other expressions (e.g. in an annotation's arguments)
 - **Companion object members** — `MyConfig.default` (val), `MyConfig.create(42)` (def), including chained access like `MyConfig.default.value`
 - **Constructor calls** — `new Foo(arg1, arg2)` where all arguments are also semi-evaluable
 - **Method calls** — `obj.method(args)` where the receiver and all arguments are semi-evaluable, including varargs and overloaded methods
@@ -2186,6 +2189,10 @@ Then we would have to work with `Method` representations that provide introspect
  * `Method.ApplyTypes` - type-parametric methods: needs type arguments, call `apply(typeArgs)` to advance
  * `Method.ApplyValues` - methods needing value arguments: call `apply(arguments)` to advance
  * `Method.Result[Out]` - terminal step: call `build()` to validate and produce `Either[String, Expr[Out]]`
+
+A Scala 3 extension method (`extension (v: Vec) def copy(x: Double = v.x)`) takes its receiver as its first parameter
+list - `def copy(v: Vec)(x: Double = <default>)` - so the receiver is passed as an argument, like any other parameter
+(and a default value reading the receiver gets it).
 
 Each method is a builder chain — pattern match to determine the next step, apply arguments, and eventually reach `Result`.
 
@@ -4294,7 +4301,7 @@ The variants carry more information:
 | Variant             | Represents                          | Additional fields                                              |
 |---------------------|-------------------------------------|----------------------------------------------------------------|
 | `Enclosure.Method`  | an enclosing `def`                  | `tpe: Option[??]` (currently always `None`), `localValues`     |
-| `Enclosure.Value`   | an enclosing `val`/`var`/`lazy val` | `tpe: ??`                                                      |
+| `Enclosure.Value`   | an enclosing `val`/`var`/`lazy val` | `tpe: ??` (see below)                                          |
 | `Enclosure.Class`   | an enclosing `class`/`trait`        | `tpe: ??`, `members: List[Method]`, `thisRef: Option[Expr_??]` |
 | `Enclosure.Object`  | an enclosing `object`               | `tpe: ??`, `members: List[Method]`, `thisRef: Expr_??`         |
 | `Enclosure.Package` | an enclosing package                | —                                                              |
@@ -4309,6 +4316,9 @@ the same on Scala 2 and Scala 3, with some limitations:
  - `Enclosure.Method.localValues` - the `val`s defined in the method's body before the macro call - are only
    available on **Scala 2** and only for the closest method. On Scala 3 the method's body is not available yet while
    the macro inside it is being expanded, so the list is always empty there
+ - on **Scala 2**, a `val`/`lazy val` without a type ascription whose right-hand side contains the macro call is being
+   typed during the expansion, so its `Enclosure.Value.tpe` is `Any`, and it is not among the enclosing class's
+   `members`
  - `Enclosure.Package`s are not listed the same way on Scala 2 and Scala 3 (e.g. how package segments are split
    into enclosures), so don't rely on them being identical between versions
 

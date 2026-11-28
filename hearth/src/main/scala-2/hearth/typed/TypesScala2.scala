@@ -56,24 +56,32 @@ trait TypesScala2 extends Types { this: MacroCommonsScala2 =>
           // For singleton types of stable terms (e.g. Enumeration values like WeekDay.Mon.type),
           // use the term symbol name instead of dealiasing (which would give "Value")
           val termSym = tpe.termSymbol
-          if (termSym != NoSymbol && !termSym.isModule) termSym.name.toString
-          else tpe.dealias.typeSymbol.name.toString
+          if (termSym != NoSymbol && !termSym.isModule) termSym.name.decodedName.toString
+          else tpe.dealias.typeSymbol.name.decodedName.toString
       }
     }
-    override def plainPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.plain)
-    override def prettyPrint[A: Type]: String = showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.ANSI)
+    // The code printer back-quotes names which are not plain identifiers (`` `US/Alaska` ``), while Scala 3 prints
+    // types with the names as they are: printed types are names to show, not code to compile, so they follow Scala 3.
+    private val backQuotedName = "`([^`.]+)`".r
+    private def withoutBackQuotes(printed: String): String =
+      backQuotedName.replaceAllIn(printed, m => scala.util.matching.Regex.quoteReplacement(m.group(1)))
+
+    override def plainPrint[A: Type]: String =
+      withoutBackQuotes(showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.plain))
+    override def prettyPrint[A: Type]: String =
+      withoutBackQuotes(showCodePretty(Type[A].tpe.dealias, SyntaxHighlight.ANSI))
 
     override def runtimePlainPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
       runtimeAwareTypePrint(
         Type[A].tpe.dealias,
         rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
-        tpe => showCodePretty(tpe.dealias, SyntaxHighlight.plain)
+        tpe => withoutBackQuotes(showCodePretty(tpe.dealias, SyntaxHighlight.plain))
       )
     override def runtimePrettyPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
       runtimeAwareTypePrint(
         Type[A].tpe.dealias,
         rawTpe => overrideForType(UntypedType.toTyped[Any](rawTpe).as_??),
-        tpe => showCodePretty(tpe.dealias, SyntaxHighlight.ANSI)
+        tpe => withoutBackQuotes(showCodePretty(tpe.dealias, SyntaxHighlight.ANSI))
       )
     override def runtimeShortPrint[A: Type](overrideForType: ?? => Option[Expr[String]]): Expr[String] =
       runtimeAwareTypePrint(

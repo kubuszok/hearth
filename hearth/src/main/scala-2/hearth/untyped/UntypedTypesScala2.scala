@@ -66,7 +66,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         }
       }
 
-      def subtypeName(typeSymbol: TypeSymbol): String = typeSymbol.name.toString
+      def subtypeName(typeSymbol: TypeSymbol): String = typeSymbol.name.decodedName.toString
 
       /** Applies type arguments from supertype to subtype if there are any */
       def subtypeTypeOf(instanceTpe: UntypedType, subtypeSymbol: TypeSymbol): UntypedType = {
@@ -80,6 +80,13 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
       }
 
       def symbolName(symbol: Symbol): String = symbol.name.decodedName.toString
+
+      /** Whether the compiler is computing the signature of `symbol` right now - e.g. a member without a type
+        * ascription whose right-hand side contains the expanded macro call. Reading its signature would be a cyclic
+        * reference ("recursive value x needs type").
+        */
+      def isBeingTyped(symbol: Symbol): Boolean =
+        symbol.asInstanceOf[scala.reflect.internal.Symbols#Symbol].hasFlag(scala.reflect.internal.Flags.LOCKED)
 
       private val syntheticCaseAccessorName = "(.+)\\$access\\$\\d+".r
 
@@ -193,6 +200,9 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
 
     // Scala 2 has no opaque types, so there is never an underlying type to resolve.
     override def opaqueUnderlyingType(instanceTpe: UntypedType): Option[UntypedType] = None
+
+    override private[hearth] def byNameUnderlying(paramTpe: UntypedType): Option[UntypedType] =
+      if (paramTpe.typeSymbol == c.universe.definitions.ByNameParamClass) paramTpe.typeArgs.headOption else None
 
     override def isTuple(instanceTpe: UntypedType): Boolean = {
       val A = instanceTpe.typeSymbol
@@ -319,12 +329,37 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
     ): Either[NonEmptyVector[String], UntypedExpr] = {
       import c.universe.*
 
+      // Seen from the target type, a member mentioning an inner type of a parent (`this.Embedded`) gets an existential
+      // signature (`(e: _1.Embedded)Int forSome { val _1 }`) or a projection (`Parent#Embedded`), neither of which
+      // overrides it. Such a member is read relative to the parents' own `this`, and the types referring to it are
+      // emitted through the new instance's `this` (`this.Embedded`).
+      val parentClasses: Set[Symbol] = parentTypes.flatMap(_.baseClasses).toSet
+      def isParentThis(tpe: UntypedType): Boolean = tpe match {
+        case ThisType(cls) => parentClasses(cls)
+        case _             => false
+      }
+      def mentionsParentThis(tpe: UntypedType): Boolean = tpe.exists(isParentThis)
+      def typeTreeInNewInstance(tpe: UntypedType): Tree = tpe match {
+        case TypeRef(prefix, typeSym, args) if isParentThis(prefix) =>
+          val inner = Select(This(typeNames.EMPTY), typeSym.name.toTypeName)
+          if (args.isEmpty) inner else AppliedTypeTree(inner, args.map(typeTreeInNewInstance))
+        case TypeRef(_, _, args) if args.nonEmpty && mentionsParentThis(tpe) =>
+          AppliedTypeTree(TypeTree(tpe.typeConstructor), args.map(typeTreeInNewInstance))
+        case _ => TypeTree(tpe)
+      }
+
       val overrideDefs: List[Tree] = overrides.map { ovr =>
         val sym = ovr.method.symbol
         // Use the symbol's ORIGINAL (encoded) name, not `ovr.method.name` (which is decoded): a symbolic member like
         // `+` is encoded as `$plus`, and a freshly built `TermName("+")` would not match the abstract member.
         val methodName = sym.name.toTermName
-        val rawSig = sym.asMethod.typeSignatureIn(targetType)
+        def mentionsInnerTypeOfParent(tpe: UntypedType): Boolean = tpe.exists {
+          case TypeRef(prefix, _, _) => isParentThis(prefix)
+          case _                     => false
+        }
+        val rawSig =
+          if (mentionsInnerTypeOfParent(sym.typeSignature)) sym.asMethod.typeSignatureIn(sym.owner.asClass.thisPrefix)
+          else sym.asMethod.typeSignatureIn(targetType)
         val paramLists = rawSig.paramLists
 
         // Reconstruct the method's type parameters (for generic / polymorphic methods like `def f[T](t: T): T`).
@@ -347,7 +382,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           paramList.map { param =>
             val paramName = TermName(param.name.toString)
             val paramType = subst(param.typeSignature)
-            val vd = ValDef(Modifiers(clauseFlags), paramName, TypeTree(paramType), EmptyTree)
+            val vd = ValDef(Modifiers(clauseFlags), paramName, typeTreeInNewInstance(paramType), EmptyTree)
             val ref: UntypedExpr = Ident(paramName)
             (vd, ref)
           }.unzip
@@ -369,7 +404,7 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
         val selfIdent: UntypedExpr = q"this"
         val bodyExpr = ovr.body(selfIdent, paramRefs.flatten, resultType, typeParamTypes, isThisTypeReturn)
 
-        val returnTpt: Tree = if (isThisTypeReturn) tq"this.type" else TypeTree(resultType)
+        val returnTpt: Tree = if (isThisTypeReturn) tq"this.type" else typeTreeInNewInstance(resultType)
 
         // An abstract `val` must be overridden with a `val`, not a `def` ("stable, immutable value required"). A val
         // member has no parameter lists or type parameters, so emit a plain ValDef carrying the override's body.
@@ -466,7 +501,18 @@ trait UntypedTypesScala2 extends UntypedTypes { this: MacroCommonsScala2 =>
           if companion != NoSymbol && companion.isModule
           companionClass <- Option(companion.asModule.moduleClass)
           if companionClass != NoSymbol && companionClass.isType
-        } yield (subtypeTypeOf(untyped, companionClass.asType), q"$companion")
+        } yield (subtypeTypeOf(untyped, companionClass.asType), companionRef(untyped, companion))
+
+    // `q"$companion"` goes through the companion's owner (`Trait.this.Companion`), which compiles only inside that
+    // owner. A class declared in a trait and used through an object extending it (`Obj.Companion`) has to be reached
+    // through the stable prefix of the type instead.
+    private def companionRef(untyped: UntypedType, companion: Symbol): Tree =
+      if (companion.isStatic) q"$companion"
+      else
+        untyped.dealias match {
+          case TypeRef(prefix @ SingleType(_, _), _, _) => c.internal.gen.mkAttributedRef(prefix, companion)
+          case _                                        => q"$companion"
+        }
 
     override def pseudoCompanionObject(untyped: UntypedType): Option[(UntypedType, UntypedExpr)] = {
       // `dealias` until a fixed point: aliases of aliases (`type A = B; type B = Obj.Type`)

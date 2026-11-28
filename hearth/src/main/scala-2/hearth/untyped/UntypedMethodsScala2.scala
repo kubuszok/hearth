@@ -7,7 +7,7 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
   import c.universe.*
 
-  import UntypedType.platformSpecific.{positionOf, symbolAvailable, symbolName}
+  import UntypedType.platformSpecific.{isBeingTyped, positionOf, symbolAvailable, symbolName}
 
   final class UntypedParameter private (val method: UntypedMethod, val symbol: TermSymbol, val index: Int)
       extends UntypedParameterMethods {
@@ -694,8 +694,13 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
     override def unsortedMethods(instanceTpe: UntypedType): List[UntypedMethod] = {
       // Defined in the type or its parent, or synthetic
       val classMembers = instanceTpe.members
-      // Defined exactly in the type
-      val classDeclared = instanceTpe.decls.toSet
+      // Defined exactly in the type. The `this` type of a self-typed class (`C with Self`) is a refinement which
+      // declares nothing of its own: what it declares is what `C` declares.
+      val classDeclared = instanceTpe match {
+        case RefinedType(cls :: _, decls) if decls.isEmpty && isThisTypeOf(cls.typeSymbol, instanceTpe) =>
+          cls.decls.toSet
+        case _ => instanceTpe.decls.toSet
+      }
 
       val (members, declared, moduleBySymbol) = instanceTpe.companionObject
         .map { case (companionTpe, companionRef) =>
@@ -721,11 +726,14 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
       members
         .filterNot(_.isConstructor) // Constructors are handled by `primaryConstructor` and `constructors`
+        // A member being typed right now (the one holding the macro call) has no signature yet.
+        .filterNot(isBeingTyped)
         .filterNot { s =>
           val name = symbolName(s)
           // val/vars create both term and method symbols - one of them is redundant, but we have to allow terms to not lose ctor arguments.
           // We can recognize extra term symbols by checking if the name ends with " " (for term) or not (for method).
-          name.endsWith(" ") ||
+          // A back-quoted name can end with a space itself (`` ` x ` ``), so only a non-method (the field) is dropped.
+          (!s.isMethod && name.endsWith(" ")) ||
           // Default parameters are methods, but we don't want them
           name.contains("$default$") ||
           // Class static initializer is a method, but we don't want it
@@ -833,6 +841,12 @@ trait UntypedMethodsScala2 extends UntypedMethods { this: MacroCommonsScala2 =>
 
     // We do not want to include methods and fields from java.lang.Object in the companion object.
     // Because the companion class has them and we don't want to mix them when listing methods for companion class.
+    private def isThisTypeOf(cls: Symbol, tpe: UntypedType): Boolean =
+      cls.isClass && cls
+        .asInstanceOf[scala.reflect.internal.Symbols#Symbol]
+        .typeOfThis
+        .asInstanceOf[UntypedType] =:= tpe
+
     private lazy val methodsSkippedInCompanion: Set[Symbol] =
       objectMembers.toSet
   }

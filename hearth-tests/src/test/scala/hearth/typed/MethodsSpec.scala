@@ -1585,6 +1585,25 @@ final class MethodsSpec extends MacroSuite {
           )
         }
 
+        test("byNameUnderlying of a by-name parameter has the class's type arguments applied") {
+          testParameterProperties[examples.methods.ByNameAlgebra[Option]]("whenM") <==> Data.map(
+            "cond" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(false),
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("<none>")
+            ),
+            "action" -> Data.map(
+              "isImplicit" -> Data(false),
+              "hasDefault" -> Data(false),
+              "isByName" -> Data(true),
+              "isVararg" -> Data(false),
+              "byNameUnderlying" -> Data("scala.Option[scala.Unit]")
+            )
+          )
+        }
+
         test("parameter-level isImplicit for implicit parameters") {
           testParameterProperties[examples.methods.WithImplicits]("methodWithImplicitParam") <==> Data.map(
             "x" -> Data.map(

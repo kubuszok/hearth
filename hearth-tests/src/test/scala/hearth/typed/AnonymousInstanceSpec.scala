@@ -294,6 +294,10 @@ final class AnonymousInstanceSpec extends MacroSuite {
           testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithConcreteMethod] <==> "success"
         }
 
+        test("trait with methods using an inner type of the trait") {
+          testAnonymousInstanceConstruct[examples.anonymous_instances.TraitWithEmbedded] <==> "success"
+        }
+
         test("abstract class without args") {
           testAnonymousInstanceConstruct[examples.anonymous_instances.AbstractClassNoArgs] <==> "success"
         }
@@ -418,6 +422,10 @@ final class AnonymousInstanceSpec extends MacroSuite {
         test("override body can use the override's own parameters together with captured expressions") {
           val captured = List("ctx").mkString
           AnonymousInstanceFixtures.testAnonymousInstanceOverrideUsingParams(captured) <==> "ctx! echo"
+        }
+
+        test("OverrideContext.parameters have the types of the overridden method's parameters") {
+          AnonymousInstanceFixtures.testAnonymousInstanceOverrideParameterTypes <==> "<: String: true, Nothing: false"
         }
 
         test("rejects final class") {

@@ -122,3 +122,24 @@ trait AITraitWithByName {
 trait AITraitWithVar {
   var abstractVar: String
 }
+
+// Case classes with default values declared in a trait, used through an object extending it: the default values live
+// in the companion, which is reached through the object (`CaseClassesInTrait.UserInTrait`), not through the trait.
+trait CaseClassesInTrait {
+  case class UserInTrait(name: String, age: Int = 42)
+  case class BoxInTrait[A](value: A, label: String = "box")
+}
+object CaseClassesInTrait extends CaseClassesInTrait
+
+// A method overloading the name of a case field must not be taken for the field's accessor.
+final case class CaseFieldOverloadedByMethod(paths: Int = 0) {
+  def paths(newPaths: Int): CaseFieldOverloadedByMethod = copy(paths = newPaths)
+}
+
+// Back-quoted names: Scala 2 encodes the operators (`US$divAlaska`) and marks a field with a trailing space.
+final case class SpacedFieldNames(` x `: Int, `kebab-case`: String)
+sealed trait SymbolicNames
+object SymbolicNames {
+  case object `US/Alaska` extends SymbolicNames
+  final case class `a+b`(value: Int) extends SymbolicNames
+}

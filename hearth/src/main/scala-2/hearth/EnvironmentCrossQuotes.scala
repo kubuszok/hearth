@@ -18,9 +18,26 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
       * type tree representations (using `Ident(TypeName("A"))` for free types). The compiler then resolves these by
       * name to the quasiquote's own type params during typechecking.
       *
+      * Takes and returns an `Expr` of the current macro context ([[ctx]]).
+      *
+      * @since 0.4.6
+      */
+    def stripFreeTypes(expr: Any): Any = {
+      val c = ctx[scala.reflect.macros.blackbox.Context]
+      stripFreeTypesIn(c)(expr.asInstanceOf[c.Expr[Any]])
+    }
+
+    /** Kept for macros compiled against the previous releases, whose generated code calls it.
+      *
       * @since 0.3.0
       */
-    def stripFreeTypes(ctx: scala.reflect.macros.blackbox.Context)(expr: ctx.Expr[Any]): ctx.Expr[Any] = {
+    @deprecated("Use stripFreeTypes(expr), which takes the context from CrossQuotes.ctx", "0.4.6")
+    def stripFreeTypes(ctx: scala.reflect.macros.blackbox.Context)(expr: ctx.Expr[Any]): ctx.Expr[Any] =
+      stripFreeTypesIn(ctx)(expr)
+
+    private def stripFreeTypesIn(
+        ctx: scala.reflect.macros.blackbox.Context
+    )(expr: ctx.Expr[Any]): ctx.Expr[Any] = {
       import ctx.universe.*
       val tree = expr.tree
 
@@ -81,6 +98,45 @@ trait EnvironmentCrossQuotesSupport { this: Environments =>
       }
 
       ctx.Expr[Any](stripper.transform(tree))
+    }
+
+    /** The arguments to put in place of `Expr.splice(seq)*` inside `Expr.quote`, as trees of the current macro context
+      * ([[ctx]]).
+      *
+      * A sequence built with a standard library factory (`Seq(a, b)`, `List(a, b)`, also untyped, as [[VarArgs]] builds
+      * it) is spliced as its elements; any other sequence (a `::` chain, a reference, a method call) is spliced as a
+      * whole, as `seq: _*`.
+      *
+      * @since 0.4.6
+      */
+    def varArgsElements(seq: Any): List[Any] = {
+      val c = ctx[scala.reflect.macros.blackbox.Context]
+      import c.universe.*
+      val factoryNames = Set("Seq", "List", "Vector", "IndexedSeq")
+      def isStandardCollectionsPath(qualifier: Tree): Boolean =
+        qualifier.toString.matches("(_root_\\.)?scala(\\.collection(\\.immutable)?)?")
+      def isUntypedFactory(fun: Tree): Boolean = fun match {
+        case Select(companion, TermName("apply")) => isUntypedFactory(companion)
+        case Ident(TermName(name))                => factoryNames(name)
+        case Select(qualifier, TermName(name))    => factoryNames(name) && isStandardCollectionsPath(qualifier)
+        case _                                    => false
+      }
+      def isSeqFactoryApply(fun: Tree): Boolean = fun match {
+        case TypeApply(inner, _) => isSeqFactoryApply(inner)
+        case _                   =>
+          val sym = fun.symbol
+          if (sym == null || sym == NoSymbol) isUntypedFactory(fun)
+          else
+            sym.name == TermName("apply") && sym.owner.isModuleClass &&
+            sym.owner.fullName.startsWith("scala.collection.") && sym.isMethod &&
+            sym.asMethod.paramLists.flatten.exists(param =>
+              definitions.RepeatedParamClass == param.typeSignature.typeSymbol
+            )
+      }
+      seq.asInstanceOf[c.Expr[Any]].tree match {
+        case Apply(fun, args) if isSeqFactoryApply(fun) => args
+        case tree                                       => List(Typed(tree, Ident(typeNames.WILDCARD_STAR)))
+      }
     }
   }
 }

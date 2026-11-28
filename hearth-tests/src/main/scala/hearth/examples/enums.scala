@@ -7,6 +7,12 @@ object WeekDay extends Enumeration {
   val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
 }
 
+object EnumerationWithPrivateValue extends Enumeration {
+  val Sun, Moon = Value
+  private val Vesta = Value("Vesta")
+  val withPrivate: Set[Value] = Set(Sun, Moon, Vesta)
+}
+
 object Planet extends Enumeration {
   // Example changed, because Scala.js/Native complain:
   // Calls to the non-string constructors of Enumeration.Val

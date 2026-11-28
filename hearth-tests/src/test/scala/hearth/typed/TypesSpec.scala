@@ -2251,6 +2251,17 @@ final class TypesSpec extends MacroSuite {
         testCtorK1OfOwnTypeParameter[examples.kinds.HigherKinded1] <==>
           "hearth.examples.kinds.HigherKinded1[scala.Option]"
       }
+
+      test("Expr.quote using Alg as a type argument keeps an alias fixing an extra type parameter") {
+        import TypesFixtures.testQuoteWithCtorK1OfOwnTypeParameter
+        testQuoteWithCtorK1OfOwnTypeParameter[examples.kinds.HigherKinded1] <==> "constructed"
+        testQuoteWithCtorK1OfOwnTypeParameter[examples.kinds.Alias.HigherKindedFixedExtra] <==> "constructed"
+      }
+
+      test("Type.CtorK1.of[Alg] of an alias fixing an extra type parameter keeps the fixed argument") {
+        testCtorK1OfOwnTypeParameter[examples.kinds.Alias.HigherKindedFixedExtra] <==>
+          "hearth.examples.kinds.HigherKindedWithExtra[scala.Option, java.lang.String]"
+      }
     }
 
     group("type Type.Lazy") {

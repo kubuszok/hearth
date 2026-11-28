@@ -192,6 +192,9 @@ trait UntypedTypes { this: MacroCommons =>
       */
     def opaqueUnderlyingType(instanceTpe: UntypedType): Option[UntypedType]
     def isTuple(instanceTpe: UntypedType): Boolean
+
+    /** For a by-name parameter type (`=> A`), `A`; `None` for any other type. */
+    private[hearth] def byNameUnderlying(paramTpe: UntypedType): Option[UntypedType]
     def isNamedTuple(instanceTpe: UntypedType): Boolean = false
     def isUnionType(instanceTpe: UntypedType): Boolean = false
 

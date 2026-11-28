@@ -460,6 +460,34 @@ trait MethodsFixturesImpl { this: MacroCommons =>
       Environment.reportErrorAndAbort(s"Method name must be a string literal, got ${other.prettyPrint}")
   }
 
+  /** Calls every method named `methodName` passing `instance` to each parameter of type `A` and `x` to the parameter
+    * named "x", leaving the rest to their defaults.
+    */
+  def testCallWithReceiverAndX[A: Type](instance: Expr[A], methodName: Expr[String], x: Expr[Double]): Expr[String] = {
+    implicit val StringType: Type[String] = this.StringType
+    implicit val DoubleType: Type[Double] = Type.of[Double]
+    val name = Expr.unapply(methodName).getOrElse(Environment.reportErrorAndAbort("Method name must be a literal"))
+    val results = Type[A].methods.filter(_.name == name).map { method =>
+      method.fold(
+        onInstance = _ => instance.as_??,
+        onTypes = _ => Map.empty,
+        onValues = av =>
+          av.parameters.flatten.flatMap { case (pName, param) =>
+            import param.tpe.Underlying as Param
+            if (Param =:= Type[A]) Some(pName -> instance.as_??)
+            else if (pName == "x") Some(pName -> x.as_??)
+            else None
+          }.toMap
+      ) match {
+        case Right(result) =>
+          import result.{Underlying as Result, value as resultExpr}
+          Expr.quote(Expr.splice(resultExpr).toString)
+        case Left(error) => Expr(s"<failed: $error>")
+      }
+    }
+    results.reduceOption((a, b) => Expr.quote(Expr.splice(a) + " | " + Expr.splice(b))).getOrElse(Expr("<no method>"))
+  }
+
   def testCallInstanceViaFold[A: Type](instance: Expr[A])(methodName: Expr[String])(
       params: VarArgs[Int]
   ): Expr[Data] = {
