@@ -2999,6 +2999,13 @@ final class TypesSpec extends MacroSuite {
       test("a class without a companion gives None") {
         testCompanionObject[typesedge.WithoutCompanion] <==> Data("<none>")
       }
+
+      test("a case class declared in a trait, used through an object, gives the companion through the object") {
+        import hearth.examples.classesedge.CaseClassesInTrait
+        testCompanionObject[CaseClassesInTrait.UserInTrait] <==>
+          Data("hearth.examples.classesedge.CaseClassesInTrait.UserInTrait.type")
+        testCompanionObjectValue[CaseClassesInTrait.UserInTrait] ==> CaseClassesInTrait.UserInTrait
+      }
     }
 
     group("methods: <:<, =:= for variance, bottom types and aliases") {
