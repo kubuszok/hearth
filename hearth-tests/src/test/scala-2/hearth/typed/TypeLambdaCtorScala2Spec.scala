@@ -9,12 +9,12 @@ final class TypeLambdaCtorScala2Spec extends MacroSuite {
 
     test("Expr.quote using the lambda as a type argument keeps the fixed type arguments") {
       TypesFixtures.testQuoteWithCtorK1OfOwnTypeParameter[
-        Lambda[F[?] => examples.kinds.HigherKindedWithExtra[F, String]]
+        Lambda[F[_] => examples.kinds.HigherKindedWithExtra[F, String]]
       ] <==> "constructed"
     }
 
     test("keeps the type arguments the lambda fixes") {
-      testCtorK1OfOwnTypeParameter[Lambda[F[?] => examples.kinds.HigherKindedWithExtra[F, String]]] <==>
+      testCtorK1OfOwnTypeParameter[Lambda[F[_] => examples.kinds.HigherKindedWithExtra[F, String]]] <==>
         "hearth.examples.kinds.HigherKindedWithExtra[scala.Option, java.lang.String]"
     }
   }
