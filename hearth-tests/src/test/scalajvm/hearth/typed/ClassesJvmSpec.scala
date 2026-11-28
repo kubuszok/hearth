@@ -265,6 +265,12 @@ final class ClassesJvmSpec extends MacroSuite {
         )
       }
 
+      test("is an Enum also when Enum.parse is the first thing asked about it") {
+        // Nothing in this module refers to `FormatStyle`, or lists its children before this `Enum.parse`.
+        ClassesFixtures.testEnumParseDiagnostic[java.time.format.FormatStyle] <==>
+          "parsed with children: FULL, LONG, MEDIUM, SHORT"
+      }
+
       test("lists the constants in declaration order, also when the compilation refers to some of them") {
         val referred = java.time.format.TextStyle.SHORT_STANDALONE
         assert(referred.ordinal == 3)
