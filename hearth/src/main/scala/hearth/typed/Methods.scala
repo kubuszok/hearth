@@ -1017,7 +1017,7 @@ trait Methods { this: MacroCommons =>
           knownReturning0: Option[() => ??],
           parameters: Parameters,
           next: UntypedArguments => Method
-      )(instanceEvidence: ??, appliedState: AppliedState) =
+      )(instanceEvidence: ??, appliedState: AppliedState) = {
         this(
           asUntyped,
           untypedInstanceType,
@@ -1029,6 +1029,7 @@ trait Methods { this: MacroCommons =>
             next(arguments)
           }
         )(instanceEvidence, appliedState)
+      }
 
       type Instance = instanceEvidence.Underlying
       @ImportedCrossTypeImplicit
