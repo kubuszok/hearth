@@ -80,6 +80,9 @@ log.cross-quotes = false
 
 ## Global rules
 
+ - **workflow**: work on a branch, commit, push and open a pull request (`gh pr create`); the maintainer reviews and
+   merges it. Never merge a pull request yourself, and never commit to `master` directly.
+
  - ✅ **allowed operations**:
 
     ```bash
@@ -88,19 +91,22 @@ log.cross-quotes = false
     git log
     git branch
     git show
+    git checkout -b <branch>
+    git add
+    git commit -m "message"   # commits are signed by the git config
+    git push -u origin <branch>
+    gh pr create
     sbt --client "..."
     ```
 
  - ❌ **forbidden operations**:
 
     ```bash
-    git commit
-    git commit -m "message"
-    git commit --amend
-    git push
+    git commit --amend        # on pushed commits: add a new commit instead
     git push --force
     git rebase
     git merge
+    gh pr merge
     git reset --hard
     sbt          # bare sbt without --client is forbidden
     ```
